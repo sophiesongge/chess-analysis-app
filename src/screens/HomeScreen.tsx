@@ -10,7 +10,10 @@ import { getBestMove } from '../services/api';
 
 type RootStackParamList = {
   Home: undefined;
-  Analyse: { fen?: string };
+  Analyse: { 
+    fen?: string;
+    moveHistory?: string; // 添加moveHistory参数
+  };
   // 可以添加其他页面的路由参数
 };
 
@@ -278,7 +281,15 @@ export default function HomeScreen() {
 
   // 跳转到分析页面
   const goToAnalyse = () => {
-    navigation.navigate('Analyse', { fen: currentFen });
+    // 获取当前棋局的FEN和历史记录
+    const currentFen = chessRef.current.fen();
+    const moveHistory = chessRef.current.history({ verbose: true });
+    
+    // 导航到分析页面，并传递FEN和历史记录
+    navigation.navigate('Analyse', { 
+      fen: currentFen,
+      moveHistory: JSON.stringify(moveHistory) // 需要序列化对象
+    });
   };
 
   // 重置棋盘

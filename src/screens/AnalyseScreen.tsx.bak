@@ -220,12 +220,7 @@ export default function AnalyseScreen({
       <View style={styles.container}>
         {/* 黑方区域（显示在棋盘上方）- 显示黑方吃掉的白方棋子 */}
         <View style={styles.capturedPiecesContainer}>
-          <CapturedPieces 
-            fen={currentFen} 
-            side={boardOrientation === 'white' ? 'black' : 'white'} 
-            showIcons={true} 
-            useImages={true} 
-          />
+          <CapturedPieces fen={currentFen} side="black" showIcons={true} useImages={true} />
         </View>
         
         {/* 棋盘 - 使用boardOrientation状态 */}
@@ -238,12 +233,7 @@ export default function AnalyseScreen({
         
         {/* 白方区域（显示在棋盘下方）- 显示白方吃掉的黑方棋子 */}
         <View style={styles.capturedPiecesContainer}>
-          <CapturedPieces 
-            fen={currentFen} 
-            side={boardOrientation === 'white' ? 'white' : 'black'} 
-            showIcons={true} 
-            useImages={true} 
-          />
+          <CapturedPieces fen={currentFen} side="white" showIcons={true} useImages={true} />
         </View>
         
         {/* 控制按钮 - 走子控制 */}
