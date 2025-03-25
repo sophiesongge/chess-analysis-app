@@ -15,11 +15,15 @@ type RootStackParamList = {
   Analyse: { 
     fen?: string;
     moveHistory?: string; // 添加moveHistory参数
+    gameResult?: string; // 添加gameResult参数
   };
   // 可以添加其他页面的路由参数
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+
+// 在HomeScreen.tsx中
+import { useChess } from '../context/ChessContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -377,10 +381,11 @@ export default function HomeScreen() {
     const currentFen = chessRef.current.fen();
     const moveHistory = chessRef.current.history({ verbose: true });
     
-    // 导航到分析页面，并传递FEN和历史记录
+    // 导航到分析页面，并传递FEN、历史记录和游戏结果
     navigation.navigate('Analyse', { 
       fen: currentFen,
-      moveHistory: JSON.stringify(moveHistory) // 需要序列化对象
+      moveHistory: JSON.stringify(moveHistory), // 需要序列化对象
+      gameResult: JSON.stringify(gameResult) // 传递游戏结果状态
     });
   };
 
