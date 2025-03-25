@@ -1,45 +1,29 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-// 修改导入方式，尝试默认导入
 import HomeScreen from '../screens/HomeScreen';
-import AnalyseScreen from '../screens/AnalyseScreen';
+// 如果 AnalysisScreen 使用了命名导出而不是默认导出
+import { AnalysisScreen } from '../screens/AnalysisScreen';
+// 或者如果文件名不同
+// import AnalysisScreen from '../screens/Analysis';
 
-// 定义导航参数类型，确保与组件中定义的一致
-type RootStackParamList = {
-  Home: undefined;
-  Analyse: { fen?: string };
-};
+const Stack = createStackNavigator();
 
-const Stack = createStackNavigator<RootStackParamList>();
-
-export const AppNavigator = () => {
+export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName="Home">
         <Stack.Screen 
           name="Home" 
-          component={HomeScreen}
-          options={{
-            title: '国际象棋分析',
-            headerStyle: {
-              backgroundColor: '#f4511e',
-            },
-            headerTintColor: '#fff',
-          }}
+          component={HomeScreen} 
+          options={{ title: '国际象棋分析工具' }}
         />
         <Stack.Screen 
           name="Analyse" 
-          component={AnalyseScreen}
-          options={{
-            title: '局面分析',
-            headerStyle: {
-              backgroundColor: '#f4511e',
-            },
-            headerTintColor: '#fff',
-          }}
+          component={AnalysisScreen} 
+          options={{ title: '局面分析' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
+}

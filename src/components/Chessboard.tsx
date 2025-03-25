@@ -17,15 +17,11 @@ const SQUARE_SIZE = 40;
 interface ChessboardProps {
   initialFen: string;
   onMove: (move: { from: string; to: string; promotion?: string }) => void;
-  orientation?: 'white' | 'black'; // 添加方向属性，设为可选
+  orientation?: 'white' | 'black';
+  disabled?: boolean; // 添加 disabled 属性
 }
 
-export const Chessboard: React.FC<ChessboardProps> = ({ 
-  initialFen, 
-  onMove,
-  orientation = 'white' // 设置默认值为白方视角
-}) => {
-  // 组件内部逻辑
+export function Chessboard({ initialFen, onMove, orientation = 'white', disabled = false }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<Record<string, string>>({});
   const chessRef = useRef(new Chess(initialFen));
@@ -39,6 +35,9 @@ export const Chessboard: React.FC<ChessboardProps> = ({
   
   // 处理棋子选择
   const handleSquarePress = (square: Square) => {
+    // 如果棋盘被禁用，则不允许移动棋子
+    if (disabled) return;
+    
     if (selectedSquare) {
       // 如果已经选择了一个棋子，尝试移动
       if (isValidMove(chessRef.current, selectedSquare, square)) {
@@ -103,7 +102,8 @@ export const Chessboard: React.FC<ChessboardProps> = ({
               style={[
                 styles.square, 
                 isLight ? styles.lightSquare : styles.darkSquare,
-                highlightColor ? { backgroundColor: getHighlightColor(highlightColor) } : null
+                highlightColor ? { backgroundColor: getHighlightColor(highlightColor) } : null,
+                disabled ? styles.disabledSquare : null
               ]}
             >
               {piece && (
@@ -124,11 +124,11 @@ export const Chessboard: React.FC<ChessboardProps> = ({
   };
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, disabled ? styles.disabledContainer : null]}>
       {renderBoard()}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -136,6 +136,9 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     width: SQUARE_SIZE * 8,
     height: SQUARE_SIZE * 8,
+  },
+  disabledContainer: {
+    opacity: 0.7,
   },
   row: {
     flexDirection: 'row',
@@ -146,11 +149,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  disabledSquare: {
+    // 可以添加禁用状态的样式
+  },
   lightSquare: {
-    backgroundColor: '#f0d9b5',
+    backgroundColor: '#f0f0f0', // 修改为浅色格子
   },
   darkSquare: {
-    backgroundColor: '#b58863',
+    backgroundColor: '#8aad6a', // 修改为绿色格子，与图片中的颜色相似
   },
   piece: {
     width: SQUARE_SIZE * 0.8,
