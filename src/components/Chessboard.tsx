@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableWithoutFeedback, Image } from 'react-native';
+import { View, StyleSheet, TouchableWithoutFeedback, Image, Text } from 'react-native';
 import { Chess, Square } from 'chess.js';
 import { 
   computeHighlights, 
@@ -13,15 +13,23 @@ import {
 // 棋盘尺寸常量
 const SQUARE_SIZE = 40;
 
-// 定义组件的属性类型
-interface ChessboardProps {
+// 添加游戏结果类型
+type GameResult = {
+  isGameOver: boolean;
+  winner: 'white' | 'black' | 'draw' | null;
+  kingPosition: string | null;
+};
+
+// 定义组件的属性类型 - 合并为一个类型定义
+type ChessboardProps = {
   initialFen: string;
   onMove: (move: { from: string; to: string; promotion?: string }) => void;
   orientation?: 'white' | 'black';
   disabled?: boolean; // 添加 disabled 属性
-}
+  gameResult?: GameResult; // 添加游戏结果属性
+};
 
-export function Chessboard({ initialFen, onMove, orientation = 'white', disabled = false }: ChessboardProps) {
+export function Chessboard({ initialFen, onMove, orientation = 'white', disabled = false, gameResult }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<Record<string, string>>({});
   const chessRef = useRef(new Chess(initialFen));
@@ -96,6 +104,11 @@ export function Chessboard({ initialFen, onMove, orientation = 'white', disabled
         const piece = chessRef.current.get(square);
         const highlightColor = highlights[square];
         
+        // 检查是否需要在这个方格上显示皇冠
+        const showCrown = gameResult?.isGameOver && 
+                          gameResult.winner !== 'draw' && 
+                          gameResult.kingPosition === square;
+        
         row.push(
           <TouchableWithoutFeedback key={square} onPress={() => handleSquarePress(square)}>
             <View 
@@ -107,11 +120,20 @@ export function Chessboard({ initialFen, onMove, orientation = 'white', disabled
               ]}
             >
               {piece && (
-                <Image 
-                  source={getPieceImage(piece.type, piece.color)} 
-                  style={styles.piece} 
-                  resizeMode="contain"
-                />
+                <View style={styles.pieceContainer}>
+                  <Image 
+                    source={getPieceImage(piece.type, piece.color)} 
+                    style={styles.piece} 
+                    resizeMode="contain"
+                  />
+                  
+                  {/* 如果需要显示皇冠，则在棋子上方添加皇冠图标 */}
+                  {showCrown && (
+                    <View style={styles.crownContainer}>
+                      <Text style={styles.crown}>👑</Text>
+                    </View>
+                  )}
+                </View>
               )}
             </View>
           </TouchableWithoutFeedback>
@@ -161,5 +183,25 @@ const styles = StyleSheet.create({
   piece: {
     width: SQUARE_SIZE * 0.8,
     height: SQUARE_SIZE * 0.8,
+  },
+  pieceContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crownContainer: {
+    position: 'absolute',
+    top: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crown: {
+    fontSize: 20,
+    color: 'gold',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });

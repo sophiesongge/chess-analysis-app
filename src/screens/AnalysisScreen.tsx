@@ -1,19 +1,23 @@
-// 确保 AnalysisScreen 组件中的路由参数类型定义正确
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, Modal as RNModal } from 'react-native';
-import { Text, Card, Button, Divider, Chip, TextInput, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Card } from 'react-native-paper';
 import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { analyzePosition } from '../services/api';
+import ControlPanel from '../components/chess/ControlPanel';
+import AnalysisPanel from '../components/chess/AnalysisPanel';
+import AnalysisResultInline from '../components/chess/AnalysisResultInline';
+import AnalysisResultModal from '../components/chess/AnalysisResultModal';
+import { AnalysisResult, GameResult } from '../types/chess';
 
 // 定义路由参数类型
 type RootStackParamList = {
   Home: undefined;
   Analyse: { 
     fen?: string; 
-    moveHistory?: string; // 添加moveHistory参数
+    moveHistory?: string;
   };
 };
 
@@ -23,16 +27,6 @@ type AnalysisScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ana
 type Props = {
   route: AnalysisScreenRouteProp;
   navigation: AnalysisScreenNavigationProp;
-};
-
-// 定义分析结果类型
-type AnalysisResult = {
-  score: number;
-  bestMove: string;
-  bestMoveSan: string;
-  depth: number;
-  pv: string[];
-  pvSan: string[];
 };
 
 export default function AnalysisScreen({ route, navigation }: Props) {
@@ -52,13 +46,15 @@ export default function AnalysisScreen({ route, navigation }: Props) {
     return [];
   }, [route.params?.moveHistory]);
   
-  // 添加一个状态来跟踪可撤销的走法数量
-  const [moveCount, setMoveCount] = useState(parsedMoveHistory.length);
-  
   const [fen, setFen] = useState(initialFen);
-  
-  // 添加一个状态来跟踪历史记录是否已加载
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  
+  // 添加游戏结果状态
+  const [gameResult, setGameResult] = useState<GameResult>({
+    isGameOver: false,
+    winner: null,
+    kingPosition: null
+  });
   
   const [chess, setChess] = useState(() => {
     const newChess = new Chess(initialFen);
@@ -93,14 +89,30 @@ export default function AnalysisScreen({ route, navigation }: Props) {
     
     return newChess;
   });
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisDepth, setAnalysisDepth] = useState(15);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   const [customFen, setCustomFen] = useState(initialFen);
   const [fenError, setFenError] = useState('');
-  // 添加结果面板显示状态
   const [showResultPanel, setShowResultPanel] = useState(false);
+  
+  // 处理棋子移动和撤销/前进功能所需的状态
+  const [moveHistory, setMoveHistory] = useState<any[]>(() => {
+    // 初始化为从主页面传递过来的历史记录
+    if (route.params?.moveHistory) {
+      try {
+        return JSON.parse(route.params.moveHistory);
+      } catch (error) {
+        console.error('解析历史记录失败:', error);
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  const [undoHistory, setUndoHistory] = useState<{move: any, fen: string}[]>([]);
 
   // 当路由参数中的FEN变化时更新状态
   useEffect(() => {
@@ -131,28 +143,102 @@ export default function AnalysisScreen({ route, navigation }: Props) {
     }
   }, [route.params?.fen, route.params?.moveHistory]);
 
-  // 移除单独的 moveCount 状态
-  // const [moveCount, setMoveCount] = useState(parsedMoveHistory.length);
+  // 检查游戏结果的函数
+  const checkGameResult = () => {
+    // 检查游戏是否结束
+    if (chess.isGameOver()) {
+      let winner: 'white' | 'black' | 'draw' | null = null;
+      let kingPosition: string | null = null;
+      
+      // 判断获胜方
+      if (chess.isCheckmate()) {
+        // 如果是将军，则当前回合的对手获胜
+        winner = chess.turn() === 'w' ? 'black' : 'white';
+        
+        // 找到获胜方的国王位置
+        const squares = chess.board();
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            const piece = squares[i][j];
+            if (piece && piece.type === 'k' && piece.color === (winner === 'white' ? 'w' : 'b')) {
+              // 将数组索引转换为棋盘坐标
+              const files = 'abcdefgh';
+              kingPosition = files[j] + (8 - i);
+              break;
+            }
+          }
+          if (kingPosition) break;
+        }
+      } else if (chess.isDraw()) {
+        winner = 'draw';
+      }
+      
+      setGameResult({
+        isGameOver: true,
+        winner,
+        kingPosition
+      });
+      
+      // 可以添加一个提示或者庆祝动画
+      if (winner === 'white') {
+        alert('白方获胜！');
+      } else if (winner === 'black') {
+        alert('黑方获胜！');
+      } else if (winner === 'draw') {
+        alert('和棋！');
+      }
+    } else {
+      // 如果游戏没有结束，重置游戏结果
+      setGameResult({
+        isGameOver: false,
+        winner: null,
+        kingPosition: null
+      });
+    }
+  };
   
   // 处理棋子移动
-  // 添加撤销和前进功能所需的状态
-  // 修改：初始化moveHistory为从主页面传递过来的历史记录
-  const [moveHistory, setMoveHistory] = useState<any[]>(() => {
-    // 初始化为从主页面传递过来的历史记录
-    if (route.params?.moveHistory) {
-      try {
-        return JSON.parse(route.params.moveHistory);
-      } catch (error) {
-        console.error('解析历史记录失败:', error);
-        return [];
+  const handleMove = (move: { from: string; to: string; promotion?: string }) => {
+    try {
+      const result = chess.move({
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion || 'q'
+      });
+      
+      if (result) {
+        // 更新状态
+        const newFen = chess.fen();
+        setFen(newFen);
+        setCustomFen(newFen);
+        
+        // 添加到走子历史 - 保存完整的走法信息
+        const moveDetails = {
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+          san: result.san,
+        };
+        
+        // 更新走子历史
+        setMoveHistory(prev => [...prev, moveDetails]);
+        
+        // 清空撤销历史
+        setUndoHistory([]);
+        
+        // 清除分析结果
+        setAnalysisResult(null);
+        setShowResultPanel(false);
+        
+        // 检查游戏结果
+        checkGameResult();
       }
+    } catch (err) {
+      console.error('走子错误:', err);
     }
-    return [];
-  });
-  const [undoHistory, setUndoHistory] = useState<{move: any, fen: string}[]>([]);
-  
+  };
+
   // 添加撤销功能
-  // 修改撤销功能，直接使用moveHistory.length
   const undoMove = () => {
     try {
       // 检查是否有历史记录可撤销
@@ -211,6 +297,9 @@ export default function AnalysisScreen({ route, navigation }: Props) {
         setAnalysisResult(null);
         setShowResultPanel(false);
         
+        // 检查游戏结果
+        checkGameResult();
+        
         console.log('自定义撤销完成，新FEN:', newChess.fen());
         return;
       }
@@ -249,6 +338,9 @@ export default function AnalysisScreen({ route, navigation }: Props) {
         // 清除分析结果
         setAnalysisResult(null);
         setShowResultPanel(false);
+        
+        // 检查游戏结果
+        checkGameResult();
       } else {
         console.error('撤销失败，chess.undo() 返回null');
         alert('撤销操作失败');
@@ -258,46 +350,8 @@ export default function AnalysisScreen({ route, navigation }: Props) {
       alert('撤销操作失败: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
-  
-  // 修改handleMove函数
-  const handleMove = (move: { from: string; to: string; promotion?: string }) => {
-    try {
-      const result = chess.move({
-        from: move.from,
-        to: move.to,
-        promotion: move.promotion || 'q'
-      });
-      
-      if (result) {
-        // 更新状态
-        const newFen = chess.fen();
-        setFen(newFen);
-        setCustomFen(newFen);
-        
-        // 添加到走子历史 - 保存完整的走法信息
-        const moveDetails = {
-          from: move.from,
-          to: move.to,
-          promotion: move.promotion,
-          san: result.san,
-        };
-        
-        // 更新走子历史
-        setMoveHistory(prev => [...prev, moveDetails]);
-        
-        // 清空撤销历史
-        setUndoHistory([]);
-        
-        // 清除分析结果
-        setAnalysisResult(null);
-        setShowResultPanel(false);
-      }
-    } catch (err) {
-      console.error('走子错误:', err);
-    }
-  };
 
-  // 修改前进功能
+  // 前进功能
   const redoMove = () => {
     try {
       if (undoHistory.length === 0) {
@@ -336,6 +390,9 @@ export default function AnalysisScreen({ route, navigation }: Props) {
         // 清除分析结果
         setAnalysisResult(null);
         setShowResultPanel(false);
+        
+        // 检查游戏结果
+        checkGameResult();
       } else {
         console.error('前进走法无效');
         alert('无法执行前进操作');
@@ -362,6 +419,12 @@ export default function AnalysisScreen({ route, navigation }: Props) {
       setAnalysisResult(null);
       // 隐藏结果面板
       setShowResultPanel(false);
+      // 重置游戏结果
+      setGameResult({
+        isGameOver: false,
+        winner: null,
+        kingPosition: null
+      });
     } catch (error) {
       setFenError('无效的FEN字符串');
     }
@@ -375,25 +438,16 @@ export default function AnalysisScreen({ route, navigation }: Props) {
     setCustomFen(initialPosition);
     setAnalysisResult(null);
     setFenError('');
-    // 隐藏结果面板
     setShowResultPanel(false);
-  };
-
-  // 格式化评分显示
-  const formatScore = (score: number) => {
-    if (score > 100) return '白方必胜';
-    if (score < -100) return '黑方必胜';
-    
-    const absScore = Math.abs(score);
-    const formattedScore = absScore.toFixed(2);
-    
-    if (score > 0) {
-      return `白方领先 +${formattedScore}`;
-    } else if (score < 0) {
-      return `黑方领先 +${formattedScore}`;
-    } else {
-      return '局面均势';
-    }
+    // 重置走子历史
+    setMoveHistory([]);
+    setUndoHistory([]);
+    // 重置游戏结果
+    setGameResult({
+      isGameOver: false,
+      winner: null,
+      kingPosition: null
+    });
   };
 
   // 分析当前局面
@@ -455,233 +509,59 @@ export default function AnalysisScreen({ route, navigation }: Props) {
     }
   };
   
+  // 渲染组件
   return (
-    <>
-      <ScrollView style={styles.container}>
-        <Card style={styles.chessboardCard}>
-          <Card.Content style={styles.chessboardContainer}>
-            <Chessboard 
-              initialFen={fen}
-              onMove={handleMove}
-              orientation={orientation}
-            />
-          </Card.Content>
-        </Card>
-        
-        <Card style={styles.controlCard}>
-          <Card.Content>
-            <View style={styles.controlRow}>
-              <Button 
-                mode="contained" 
-                onPress={undoMove}
-                style={styles.controlButton}
-                icon="undo"
-                // 直接使用moveHistory.length
-                disabled={moveHistory.length === 0}
-              >
-                撤销
-              </Button>
-              
-              <Button 
-                mode="contained" 
-                onPress={redoMove}
-                style={styles.controlButton}
-                icon="redo"
-                disabled={undoHistory.length === 0}
-              >
-                前进
-              </Button>
-            </View>
-            
-            <View style={styles.controlRow}>
-              <Button 
-                mode="contained" 
-                onPress={flipBoard}
-                style={styles.controlButton}
-                icon="rotate-3d"
-              >
-                翻转棋盘
-              </Button>
-              
-              <Button 
-                mode="contained" 
-                onPress={resetToInitialPosition}
-                style={styles.controlButton}
-                icon="restore"
-              >
-                初始局面
-              </Button>
-            </View>
-          </Card.Content>
-        </Card>
-        
-        {/* 在分析卡片的底部添加调试信息 */}
-        <Card style={styles.analysisCard}>
-          <Card.Title title="局面分析" />
-          <Card.Content>
-            <View style={styles.depthContainer}>
-              <Text>分析深度: {analysisDepth}</Text>
-              <View style={styles.depthButtons}>
-                {/* 深度控制按钮保持不变 */}
-              </View>
-            </View>
-            
-            {/* 修改分析按钮部分，使用更简单的方式测试 */}
-            <Button 
-              mode="contained" 
-              onPress={() => {
-                /* 直接使用alert而不是console.log，确保能看到效果 */
-                alert('按钮被点击了！');
-                /* 简化测试，直接显示内联结果 */
-                const testResult = {
-                  score: 0.35,
-                  bestMove: 'e2e4',
-                  bestMoveSan: 'e4',
-                  depth: analysisDepth,
-                  pv: ['e2e4', 'e7e5', 'g1f3'],
-                  pvSan: ['e4', 'e5', 'Nf3']
-                };
-                setAnalysisResult(testResult);
-                /* 不调用完整的analyzeCurrentPosition函数 */
-              }}
-              style={styles.analyzeButton}
-              icon="chess-queen"
-              loading={isAnalyzing}
-              disabled={isAnalyzing}
-            >
-              分析当前局面
-            </Button>
-            
-            {isAnalyzing && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#5d8a48" />
-                <Text style={styles.loadingText}>正在分析中，请稍候...</Text>
-              </View>
-            )}
-            
-            {/* 直接在页面中显示分析结果 */}
-            {analysisResult && !isAnalyzing && (
-              <View style={styles.inlineResultContainer}>
-                <Text style={styles.resultTitle}>分析结果</Text>
-                <Divider style={styles.divider} />
-                
-                <Text style={styles.scoreText}>
-                  评分: {formatScore(analysisResult.score)}
-                </Text>
-                
-                <Text style={styles.depthText}>
-                  分析深度: {analysisResult.depth}
-                </Text>
-                
-                <Text style={styles.bestMoveTitle}>最佳走法:</Text>
-                <Chip 
-                  style={styles.bestMoveChip} 
-                  textStyle={styles.bestMoveText}
-                  icon="arrow-right-bold"
-                >
-                  {analysisResult.bestMoveSan || '无最佳走法'}
-                </Chip>
-                
-                {analysisResult.pvSan && analysisResult.pvSan.length > 0 ? (
-                  <>
-                    <Text style={styles.variationTitle}>主要变例:</Text>
-                    <Text style={styles.variationText}>
-                      {analysisResult.pvSan.join(' ')}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.variationText}>无变例数据</Text>
-                )}
-              </View>
-            )}
-            
-            {/* 添加调试信息 */}
-            <View style={styles.debugContainer}>
-              <Text style={styles.debugText}>调试信息:</Text>
-              <Text>Modal 显示状态: {showResultPanel ? '显示' : '隐藏'}</Text>
-              <Text>分析结果: {analysisResult ? '有数据' : '无数据'}</Text>
-              <Button 
-                mode="outlined" 
-                onPress={() => {
-                  console.log('手动显示 Modal');
-                  alert('手动显示 Modal');
-                  setShowResultPanel(true);
-                }}
-                style={styles.debugButton}
-              >
-                手动显示结果面板
-              </Button>
-            </View>
-          </Card.Content>
-        </Card>
-      </ScrollView>
+    <ScrollView style={styles.container}>
+      <Card style={styles.chessboardCard}>
+        <Card.Content style={styles.chessboardContainer}>
+          <Chessboard 
+            initialFen={fen}
+            onMove={handleMove}
+            orientation={orientation}
+            gameResult={gameResult}
+          />
+        </Card.Content>
+      </Card>
       
-      {/* 使用 React Native 原生 Modal */}
-      <RNModal
+      <Card style={styles.controlCard}>
+        <Card.Content>
+          <ControlPanel 
+            onUndo={undoMove}
+            onRedo={redoMove}
+            onFlipBoard={flipBoard}
+            onReset={resetToInitialPosition}
+            canUndo={moveHistory.length > 0}
+            canRedo={undoHistory.length > 0}
+          />
+        </Card.Content>
+      </Card>
+      
+      <Card style={styles.analysisCard}>
+        <Card.Title title="局面分析" />
+        <Card.Content>
+          <AnalysisPanel 
+            depth={analysisDepth}
+            onDepthChange={setAnalysisDepth}
+            onAnalyze={analyzeCurrentPosition}
+            isAnalyzing={isAnalyzing}
+          />
+          
+          {analysisResult && !isAnalyzing && (
+            <AnalysisResultInline result={analysisResult} />
+          )}
+        </Card.Content>
+      </Card>
+      
+      {/* 分析结果弹窗 */}
+      <AnalysisResultModal 
         visible={showResultPanel}
-        transparent={true}
-        animationType="slide"
-        onShow={() => console.log('Modal onShow 事件触发')}
-        onRequestClose={() => {
-          console.log('Modal onRequestClose 事件触发');
-          setShowResultPanel(false);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.resultPanel}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>分析结果</Text>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={() => {
-                  console.log('关闭按钮被点击');
-                  setShowResultPanel(false);
-                }}
-              />
-            </View>
-            
-            {analysisResult ? (
-              <ScrollView style={styles.resultScrollView}>
-                <Text style={styles.scoreText}>
-                  评分: {formatScore(analysisResult.score)}
-                </Text>
-                
-                <Text style={styles.depthText}>
-                  分析深度: {analysisResult.depth}
-                </Text>
-                
-                <Text style={styles.bestMoveTitle}>最佳走法:</Text>
-                <Chip 
-                  style={styles.bestMoveChip} 
-                  textStyle={styles.bestMoveText}
-                  icon="arrow-right-bold"
-                >
-                  {analysisResult.bestMoveSan || '无最佳走法'}
-                </Chip>
-                
-                {analysisResult.pvSan && analysisResult.pvSan.length > 0 ? (
-                  <>
-                    <Text style={styles.variationTitle}>主要变例:</Text>
-                    <Text style={styles.variationText}>
-                      {analysisResult.pvSan.join(' ')}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.variationText}>无变例数据</Text>
-                )}
-              </ScrollView>
-            ) : (
-              <Text>无分析数据</Text>
-            )}
-          </View>
-        </View>
-      </RNModal>
-    </>
+        onClose={() => setShowResultPanel(false)}
+        result={analysisResult}
+      />
+    </ScrollView>
   );
 }
 
-// 在styles对象中添加调试卡片样式
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -702,176 +582,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderRadius: 12,
   },
-  controlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  controlButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    backgroundColor: '#5d8a48',
-  },
-  fenInput: {
-    marginBottom: 8,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 8,
-  },
-  button: {
-    marginVertical: 8,
-    backgroundColor: '#5d8a48',
-  },
-  applyButton: {
-    marginTop: 8,
-  },
   analysisCard: {
     margin: 16,
     marginTop: 0,
     elevation: 3,
     borderRadius: 12,
     marginBottom: 24,
-  },
-  depthContainer: {
-    marginBottom: 16,
-  },
-  depthButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  depthButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderColor: '#5d8a48',
-  },
-  analyzeButton: {
-    backgroundColor: '#5d8a48',
-    marginBottom: 16,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  loadingText: {
-    marginTop: 8,
-    color: '#5d8a48',
-    fontStyle: 'italic',
-  },
-  resultContainer: {
-    marginTop: 8,
-  },
-  divider: {
-    marginVertical: 16,
-    backgroundColor: '#5d8a48',
-    height: 1,
-  },
-  scoreText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  depthText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  bestMoveTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  bestMoveChip: {
-    backgroundColor: '#e8f5e9',
-    marginBottom: 16,
-  },
-  bestMoveText: {
-    fontSize: 16,
-    color: '#2e7d32',
-  },
-  variationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  variationText: {
-    fontSize: 14,
-    lineHeight: 22,
-    backgroundColor: '#f1f8e9',
-    padding: 12,
-    borderRadius: 8,
-  },
-  // 添加弹出面板相关样式
-  modalContainer: {
-    margin: 0,
-    justifyContent: 'flex-end',
-    backgroundColor: 'transparent', // 确保背景是透明的
-  },
-  // 另一种方案：使用底部弹出式面板
-  
-  // 修改 Modal 相关样式，确保它能正确显示
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center', // 改为居中显示，更容易看到
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', // 更深的背景色
-  },
-  resultPanel: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 8,
-    backgroundColor: 'white',
-    maxHeight: '80%', // 增加高度
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    margin: 0,
-    padding: 0,
-    minWidth: 40,
-  },
-  resultScrollView: {
-    maxHeight: '100%',
-  },
-  // 添加内联结果容器的样式
-  inlineResultContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  debugContainer: {
-    marginTop: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-  },
-  debugText: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  debugButton: {
-    marginTop: 8,
-    borderColor: '#5d8a48',
   },
 });

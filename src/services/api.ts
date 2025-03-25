@@ -2,35 +2,28 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:8000';
 
-export const analyzePosition = async (fen: string, depth: number = 15) => {
-  try {
-    console.log(`调用分析API，FEN: ${fen}, 深度: ${depth}`);
-    
-    // 如果后端服务尚未实现，返回模拟数据用于测试
-    // 在实际连接后端时可以移除这段代码
-    console.log('返回模拟数据用于测试');
-    return {
-      score: 0.35,
-      bestMove: 'e2e4',
-      bestMoveSan: 'e4',
-      depth: depth,
-      pv: ['e2e4', 'e7e5', 'g1f3'],
-      pvSan: ['e4', 'e5', 'Nf3']
-    };
-    
-    // 实际的API调用
-    /*
-    const response = await axios.post(`${API_URL}/analyze`, {
-      fen,
-      depth
-    });
-    console.log('API响应:', response.data);
-    return response.data;
-    */
-  } catch (error) {
-    console.error('分析错误:', error);
-    throw error;
-  }
+import { AnalysisResult } from '../types/chess';
+
+// 模拟分析函数
+export const analyzePosition = async (
+  fen: string, 
+  depth: number = 15
+): Promise<AnalysisResult> => {
+  // 这里应该是真实的API调用，现在用模拟数据代替
+  console.log(`分析局面: ${fen}, 深度: ${depth}`);
+  
+  // 模拟API延迟
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // 返回模拟数据
+  return {
+    score: Math.random() * 2 - 1, // 随机评分在 -1 到 1 之间
+    bestMove: 'e2e4',
+    bestMoveSan: 'e4',
+    depth: depth,
+    pv: ['e2e4', 'e7e5', 'g1f3'],
+    pvSan: ['e4', 'e5', 'Nf3']
+  };
 };
 
 export const getBestMove = async (fen: string) => {
