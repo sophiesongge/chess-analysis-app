@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Modal as RNModal } from 'react-native';
-import { Text, Card, Button, Divider, Chip, TextInput, IconButton } from 'react-native-paper';
+import { Text, Card, Button, Divider, Chip, TextInput, IconButton, Surface, Portal, Modal } from 'react-native-paper';
 import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
 import { RouteProp } from '@react-navigation/native';
@@ -30,28 +30,6 @@ type AnalysisResult = {
   pv: string[];
   pvSan: string[];
 };
-
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-
-export default function AnalysisScreen({ route, navigation }) {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>分析界面</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 18,
-  },
-});
 
 export default function AnalysisScreen({ route, navigation }: Props) {
   // 获取路由参数中的FEN
@@ -245,7 +223,7 @@ export default function AnalysisScreen({ route, navigation }: Props) {
           </Card.Content>
         </Card>
         
-        // 在分析卡片的底部添加调试信息
+        {/* 在分析卡片的底部添加调试信息 */}
         <Card style={styles.analysisCard}>
           <Card.Title title="局面分析" />
           <Card.Content>
@@ -323,222 +301,7 @@ export default function AnalysisScreen({ route, navigation }: Props) {
             </View>
           </Card.Content>
         </Card>
-        
-        // 添加相应的样式
-        const styles = StyleSheet.create({
-          container: {
-            flex: 1,
-            backgroundColor: '#f5f5f5',
-          },
-          chessboardCard: {
-            margin: 16,
-            elevation: 4,
-            borderRadius: 12,
-          },
-          chessboardContainer: {
-            alignItems: 'center',
-            padding: 10,
-          },
-          controlCard: {
-            margin: 16,
-            marginTop: 0,
-            elevation: 3,
-            borderRadius: 12,
-          },
-          controlRow: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: 16,
-          },
-          controlButton: {
-            flex: 1,
-            marginHorizontal: 4,
-            backgroundColor: '#5d8a48',
-          },
-          fenInput: {
-            marginBottom: 8,
-          },
-          errorText: {
-            color: 'red',
-            marginBottom: 8,
-          },
-          button: {
-            marginVertical: 8,
-            backgroundColor: '#5d8a48',
-          },
-          applyButton: {
-            marginTop: 8,
-          },
-          analysisCard: {
-            margin: 16,
-            marginTop: 0,
-            elevation: 3,
-            borderRadius: 12,
-            marginBottom: 24,
-          },
-          depthContainer: {
-            marginBottom: 16,
-          },
-          depthButtons: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginTop: 8,
-          },
-          depthButton: {
-            flex: 1,
-            marginHorizontal: 4,
-            borderColor: '#5d8a48',
-          },
-          analyzeButton: {
-            backgroundColor: '#5d8a48',
-            marginBottom: 16,
-          },
-          loadingContainer: {
-            alignItems: 'center',
-            marginVertical: 16,
-          },
-          loadingText: {
-            marginTop: 8,
-            color: '#5d8a48',
-            fontStyle: 'italic',
-          },
-          resultContainer: {
-            marginTop: 8,
-          },
-          divider: {
-            marginVertical: 16,
-            backgroundColor: '#5d8a48',
-            height: 1,
-          },
-          scoreText: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginBottom: 8,
-          },
-          depthText: {
-            fontSize: 14,
-            color: '#666',
-            marginBottom: 16,
-          },
-          bestMoveTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginBottom: 8,
-          },
-          bestMoveChip: {
-            backgroundColor: '#e8f5e9',
-            marginBottom: 16,
-          },
-          bestMoveText: {
-            fontSize: 16,
-            color: '#2e7d32',
-          },
-          variationTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginBottom: 8,
-          },
-          variationText: {
-            fontSize: 14,
-            lineHeight: 22,
-            backgroundColor: '#f1f8e9',
-            padding: 12,
-            borderRadius: 8,
-          },
-          // 添加弹出面板相关样式
-          modalContainer: {
-            margin: 0,
-            justifyContent: 'flex-end',
-            backgroundColor: 'transparent', // 确保背景是透明的
-          },
-          resultPanel: {
-            padding: 16,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            elevation: 8,
-            maxHeight: '60%', // 最多占屏幕高度的60%
-            backgroundColor: 'white', // 确保背景色为白色
-          },
-          resultHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          },
-          resultTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-          },
-          closeButton: {
-            margin: 0,
-            padding: 0,
-            minWidth: 40,
-          },
-          resultScrollView: {
-            maxHeight: '100%',
-          },
-        });
       </ScrollView>
-      
-      {/* 底部弹出的分析结果面板 */}
-      <Portal>
-        <Modal
-          visible={showResultPanel}
-          onDismiss={() => {
-            console.log('Modal被关闭');
-            setShowResultPanel(false);
-          }}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Surface style={styles.resultPanel}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>分析结果</Text>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={() => {
-                  console.log('关闭按钮被点击');
-                  setShowResultPanel(false);
-                }}
-              />
-            </View>
-            
-            {analysisResult ? (
-              <ScrollView style={styles.resultScrollView}>
-                <Text style={styles.scoreText}>
-                  评分: {formatScore(analysisResult.score)}
-                </Text>
-                
-                <Text style={styles.depthText}>
-                  分析深度: {analysisResult.depth}
-                </Text>
-                
-                <Text style={styles.bestMoveTitle}>最佳走法:</Text>
-                <Chip 
-                  style={styles.bestMoveChip} 
-                  textStyle={styles.bestMoveText}
-                  icon="arrow-right-bold"
-                >
-                  {analysisResult.bestMoveSan || '无最佳走法'}
-                </Chip>
-                
-                {analysisResult.pvSan && analysisResult.pvSan.length > 0 ? (
-                  <>
-                    <Text style={styles.variationTitle}>主要变例:</Text>
-                    <Text style={styles.variationText}>
-                      {analysisResult.pvSan.join(' ')}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.variationText}>无变例数据</Text>
-                )}
-              </ScrollView>
-            ) : (
-              <Text>无分析数据</Text>
-            )}
-          </Surface>
-        </Modal>
-      </Portal>
       
       {/* 使用 React Native 原生 Modal 替代 Paper Modal */}
       <RNModal
@@ -730,6 +493,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'transparent', // 确保背景是透明的
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 半透明背景
+  },
   resultPanel: {
     padding: 16,
     borderTopLeftRadius: 16,
@@ -755,5 +523,21 @@ const styles = StyleSheet.create({
   },
   resultScrollView: {
     maxHeight: '100%',
+  },
+  debugContainer: {
+    marginTop: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  debugText: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  debugButton: {
+    marginTop: 8,
+    borderColor: '#5d8a48',
   },
 });
