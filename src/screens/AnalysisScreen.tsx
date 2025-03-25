@@ -518,7 +518,7 @@ export default function AnalysisScreen({ route, navigation }: Props) {
             initialFen={fen}
             onMove={handleMove}
             orientation={orientation}
-            gameResult={gameResult}
+            gameResult={gameResult} // 确保这一行存在
           />
         </Card.Content>
       </Card>

@@ -7,6 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 // 替换 axios 导入为 API 服务导入
 import { getBestMove } from '../services/api';
+// 导入 GameResult 类型
+import { GameResult } from '../types/chess';
 
 type RootStackParamList = {
   Home: undefined;
@@ -31,6 +33,59 @@ export default function HomeScreen() {
   const [playerSide, setPlayerSide] = useState<'white' | 'black' | 'both'>('both');
   // 添加状态控制是否正在思考
   const [isThinking, setIsThinking] = useState(false);
+  // 添加游戏结果状态
+  const [gameResult, setGameResult] = useState<GameResult>({
+    isGameOver: false,
+    winner: null,
+    kingPosition: null
+  });
+  // 添加走子历史记录
+  const [moveHistory, setMoveHistory] = useState<any[]>([]);
+
+  // 检查游戏结果的函数
+  const checkGameResult = () => {
+    // 检查游戏是否结束
+    if (isGameOver(chessRef.current)) {
+      let winner: 'white' | 'black' | 'draw' | null = null;
+      let kingPosition: string | null = null;
+      
+      // 判断获胜方
+      if (chessRef.current.isCheckmate()) {
+        // 如果是将军，则当前回合的对手获胜
+        winner = chessRef.current.turn() === 'w' ? 'black' : 'white';
+        
+        // 找到获胜方的国王位置
+        const squares = chessRef.current.board();
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            const piece = squares[i][j];
+            if (piece && piece.type === 'k' && piece.color === (winner === 'white' ? 'w' : 'b')) {
+              // 将数组索引转换为棋盘坐标
+              const files = 'abcdefgh';
+              kingPosition = files[j] + (8 - i);
+              break;
+            }
+          }
+          if (kingPosition) break;
+        }
+      } else if (chessRef.current.isDraw()) {
+        winner = 'draw';
+      }
+      
+      setGameResult({
+        isGameOver: true,
+        winner,
+        kingPosition
+      });
+    } else {
+      // 如果游戏没有结束，重置游戏结果
+      setGameResult({
+        isGameOver: false,
+        winner: null,
+        kingPosition: null
+      });
+    }
+  };
 
   // 处理棋子移动
   const handleMove = (move: { from: string; to: string; promotion?: string }) => {
@@ -54,8 +109,18 @@ export default function HomeScreen() {
         const newFen = chessRef.current.fen();
         setCurrentFen(newFen);
         
+        // 添加到走子历史
+        setMoveHistory(prev => [...prev, {
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+          san: chessMove.san,
+        }]);
+        
+        // 检查游戏结果
+        checkGameResult();
+        
         // 如果用户走完棋，且游戏没有结束，且用户只能走一种颜色，则电脑走棋
-        // 修改这里：使用 isGameOver() 方法替代 game_over()
         if (playerSide !== 'both' && !isGameOver(chessRef.current)) {
           // 延迟一下，模拟电脑思考
           setIsThinking(true);
@@ -98,13 +163,27 @@ export default function HomeScreen() {
         
         if (bestMove) {
           // 执行最佳走法
-          chessRef.current.move({
+          const result = chessRef.current.move({
             from: bestMove.substring(0, 2),
             to: bestMove.substring(2, 4),
             promotion: bestMove.length > 4 ? bestMove[4] : undefined
           });
+          
           const newFen = chessRef.current.fen();
           setCurrentFen(newFen);
+          
+          // 添加到走子历史
+          if (result) {
+            setMoveHistory(prev => [...prev, {
+              from: bestMove.substring(0, 2),
+              to: bestMove.substring(2, 4),
+              promotion: bestMove.length > 4 ? bestMove[4] : undefined,
+              san: result.san,
+            }]);
+          }
+          
+          // 检查游戏结果
+          checkGameResult();
         } else {
           // 如果 Stockfish 没有返回最佳走法，回退到启发式走法
           makeHeuristicMove();
@@ -151,9 +230,22 @@ export default function HomeScreen() {
         const selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)].move;
         
         // 执行选择的走法
-        chessRef.current.move(selectedMove);
+        const result = chessRef.current.move(selectedMove);
         const newFen = chessRef.current.fen();
         setCurrentFen(newFen);
+        
+        // 添加到走子历史
+        if (result) {
+          setMoveHistory(prev => [...prev, {
+            from: selectedMove.from,
+            to: selectedMove.to,
+            promotion: selectedMove.promotion,
+            san: result.san,
+          }]);
+        }
+        
+        // 检查游戏结果
+        checkGameResult();
       }
     } catch (err) {
       console.error('启发式走子错误:', err);
@@ -296,6 +388,12 @@ export default function HomeScreen() {
   const resetBoard = () => {
     chessRef.current = new Chess();
     setCurrentFen(chessRef.current.fen());
+    setMoveHistory([]);
+    setGameResult({
+      isGameOver: false,
+      winner: null,
+      kingPosition: null
+    });
   };
 
   // 载入棋局（这里可以添加一个模态框或者新页面来输入FEN）
@@ -329,8 +427,7 @@ export default function HomeScreen() {
 
   // 开始新对局并设置方向
   const startNewGame = (side: 'white' | 'black' | 'both') => {
-    chessRef.current = new Chess();
-    setCurrentFen(chessRef.current.fen());
+    resetBoard();
     setPlayerSide(side);
     
     if (side === 'white') {
@@ -361,8 +458,12 @@ export default function HomeScreen() {
               orientation={orientation}
               // 如果电脑正在思考，禁用棋盘交互
               disabled={isThinking}
+              // 传递游戏结果
+              gameResult={gameResult}
             />
-            {/* 移除了"电脑思考中..."的提示 */}
+            {isThinking && (
+              <Text style={styles.thinkingText}>电脑思考中...</Text>
+            )}
           </Card.Content>
         </Card>
         
