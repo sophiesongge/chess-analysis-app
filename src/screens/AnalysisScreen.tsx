@@ -453,6 +453,14 @@ export default function AnalysisScreen() {
     }
   };
   
+  // 监听 fen 变化，更新吃子显示
+  useEffect(() => {
+    // 确保 fen 有效
+    if (fen && fen !== '') {
+      calculateCapturedPieces(fen);
+    }
+  }, [fen]);
+  
   // 渲染组件
   return (
     <ScrollView style={styles.container}>
