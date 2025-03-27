@@ -99,12 +99,87 @@ export default function AnalysisScreen() {
             // 检查当前局面的游戏结果
             checkGameResult(false);
           }
+          
+          // 计算已被吃掉的棋子
+          calculateCapturedPieces(route.params.fen);
         }
       } catch (error) {
         console.error('初始化分析页面失败:', error);
       }
+    } else {
+      // 如果没有路由参数，使用默认局面并计算吃子情况
+      calculateCapturedPieces(initialFen);
     }
   }, [route.params]);
+  
+  // 计算已被吃掉的棋子
+  const calculateCapturedPieces = (currentFen: string) => {
+    // 初始棋盘上每种棋子的数量
+    const initialPieces: Record<string, number> = {
+      'p': 8, 'r': 2, 'n': 2, 'b': 2, 'q': 1, 'k': 1,  // 黑棋
+      'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1, 'K': 1   // 白棋
+    };
+    
+    // 从FEN中获取棋盘部分
+    const fenBoard = currentFen.split(' ')[0];
+    
+    // 统计当前局面中每种棋子的数量
+    const currentPieces: Record<string, number> = {
+      'p': 0, 'r': 0, 'n': 0, 'b': 0, 'q': 0, 'k': 0,
+      'P': 0, 'R': 0, 'N': 0, 'B': 0, 'Q': 0, 'K': 0
+    };
+    
+    // 遍历FEN字符串中的棋盘部分
+    for (const char of fenBoard) {
+      if (/[prnbqkPRNBQK]/.test(char)) {
+        currentPieces[char]++;
+      }
+    }
+    
+    // 计算被吃掉的棋子
+    const capturedWhite: string[] = [];
+    const capturedBlack: string[] = [];
+    
+    // 计算黑棋被吃掉的棋子（小写）
+    for (const piece of ['p', 'r', 'n', 'b', 'q']) {
+      const count = initialPieces[piece] - currentPieces[piece];
+      for (let i = 0; i < count; i++) {
+        capturedWhite.push(piece);
+      }
+    }
+    
+    // 计算白棋被吃掉的棋子（大写）
+    for (const piece of ['P', 'R', 'N', 'B', 'Q']) {
+      const count = initialPieces[piece] - currentPieces[piece];
+      for (let i = 0; i < count; i++) {
+        capturedBlack.push(piece);
+      }
+    }
+    
+    // 更新状态
+    setCapturedByWhite(capturedWhite);
+    setCapturedByBlack(capturedBlack);
+  };
+  
+  // 重置为初始局面
+  const resetToInitialPosition = () => {
+    const initialPosition = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    setChess(new Chess(initialPosition));
+    setFen(initialPosition);
+    setCustomFen(initialPosition);
+    setAnalysisResult(null);
+    setFenError('');
+    setShowResultPanel(false);
+    setMoveHistory([]);
+    setUndoHistory([]);
+    setCapturedByWhite([]);
+    setCapturedByBlack([]);
+    setGameResult({
+      isGameOver: false,
+      winner: null,
+      kingPosition: null
+    });
+  };
   
   // 检查游戏结果
   const checkGameResult = (showAlert = true) => {
@@ -340,26 +415,6 @@ export default function AnalysisScreen() {
     } catch (err) {
       console.error('前进错误:', err);
     }
-  };
-  
-  // 重置为初始局面
-  const resetToInitialPosition = () => {
-    const initialPosition = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    setChess(new Chess(initialPosition));
-    setFen(initialPosition);
-    setCustomFen(initialPosition);
-    setAnalysisResult(null);
-    setFenError('');
-    setShowResultPanel(false);
-    setMoveHistory([]);
-    setUndoHistory([]);
-    setCapturedByWhite([]);
-    setCapturedByBlack([]);
-    setGameResult({
-      isGameOver: false,
-      winner: null,
-      kingPosition: null
-    });
   };
   
   // 分析当前局面
