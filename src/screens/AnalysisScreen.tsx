@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { Card } from 'react-native-paper';
 import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
@@ -10,9 +10,8 @@ import ControlPanel from '../components/chess/ControlPanel';
 import AnalysisPanel from '../components/chess/AnalysisPanel';
 import AnalysisResultInline from '../components/chess/AnalysisResultInline';
 import AnalysisResultModal from '../components/chess/AnalysisResultModal';
-import { AnalysisResult, GameResult } from '../types/chess';
-// 移除 useChess 导入
-// import { useChess } from '../context/ChessContext';
+import { AnalysisResult, GameResult, ChessMoveResult } from '../types/chess';
+import CapturedPieces from '../components/chess/CapturedPieces';
 
 // 定义路由参数类型
 type RootStackParamList = {
@@ -32,7 +31,6 @@ export default function AnalysisScreen() {
   const route = useRoute<AnalysisScreenRouteProp>();
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
 
-  // 移除对 useChess 的使用，完全使用本地状态
   // 获取路由参数
   const initialFen = route.params?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   
@@ -58,6 +56,10 @@ export default function AnalysisScreen() {
   // 走子历史相关状态
   const [moveHistory, setMoveHistory] = useState<any[]>([]);
   const [undoHistory, setUndoHistory] = useState<{move: any, fen: string}[]>([]);
+  
+  // 添加吃子状态
+  const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]);
+  const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]);
   
   // 初始化：从路由参数加载数据
   useEffect(() => {
@@ -157,14 +159,20 @@ export default function AnalysisScreen() {
     }
   };
   
+  // 添加翻转棋盘函数
+  const flipBoard = () => {
+    setOrientation(prev => prev === 'white' ? 'black' : 'white');
+  };
+  
   // 处理棋子移动
   const handleMove = (move: { from: string; to: string; promotion?: string }) => {
     try {
+      // 执行移动
       const result = chess.move({
         from: move.from,
         to: move.to,
         promotion: move.promotion || 'q'
-      });
+      }) as ChessMoveResult;
       
       if (result) {
         // 更新状态
@@ -178,10 +186,24 @@ export default function AnalysisScreen() {
           to: move.to,
           promotion: move.promotion,
           san: result.san,
+          captured: result.captured
         };
         
         setMoveHistory(prev => [...prev, moveDetails]);
         setUndoHistory([]);
+        
+        // 处理吃子情况
+        if (result.captured) {
+          if (result.color === 'w') {
+            // 白方吃子，存储小写字母（黑棋）
+            setCapturedByWhite(prev => [...prev, result.captured as string]);
+          } else {
+            // 黑方吃子，将小写字母转为大写（白棋）
+            const capturedPiece = result.captured as string;
+            const upperCasePiece = capturedPiece.toUpperCase();
+            setCapturedByBlack(prev => [...prev, upperCasePiece]);
+          }
+        }
         
         // 清除分析结果
         setAnalysisResult(null);
@@ -207,7 +229,7 @@ export default function AnalysisScreen() {
       const lastMove = moveHistory[moveHistory.length - 1];
       
       // 执行撤销
-      const move = chess.undo();
+      const move = chess.undo() as ChessMoveResult;
       
       if (move) {
         // 更新状态
@@ -225,47 +247,30 @@ export default function AnalysisScreen() {
           return newHistory;
         });
         
-        // 清除分析结果
-        setAnalysisResult(null);
-        setShowResultPanel(false);
-        
-        // 检查游戏结果
-        checkGameResult(true);
-      } else {
-        // 如果chess.js内部没有历史记录，使用自定义撤销逻辑
-        const newChess = new Chess();
-        const movesToReplay = moveHistory.slice(0, moveHistory.length - 1);
-        
-        // 重放走法
-        movesToReplay.forEach((move: any) => {
-          try {
-            newChess.move({
-              from: move.from,
-              to: move.to,
-              promotion: move.promotion
+        // 处理吃子撤销
+        if (move.captured) {
+          if (move.color === 'w') {
+            // 白方吃掉黑棋，保持小写
+            setCapturedByWhite(prev => {
+              const newCaptured = [...prev];
+              // 移除最后一个被吃的棋子
+              if (newCaptured.length > 0) {
+                newCaptured.pop();
+              }
+              return newCaptured;
             });
-          } catch (e) {
-            console.error('重放走法失败:', move, e);
+          } else {
+            // 黑方吃掉白棋，转为大写
+            setCapturedByBlack(prev => {
+              const newCaptured = [...prev];
+              // 移除最后一个被吃的棋子
+              if (newCaptured.length > 0) {
+                newCaptured.pop();
+              }
+              return newCaptured;
+            });
           }
-        });
-        
-        // 保存最后一步走法用于前进功能
-        const lastMove = moveHistory[moveHistory.length - 1];
-        
-        // 更新棋盘和状态
-        setChess(newChess);
-        setFen(newChess.fen());
-        setCustomFen(newChess.fen());
-        
-        // 保存撤销的走法到前进历史
-        setUndoHistory(prev => [...prev, { move: lastMove, fen: currentFen }]);
-        
-        // 更新走子历史
-        setMoveHistory(prev => {
-          const newHistory = [...prev];
-          newHistory.pop();
-          return newHistory;
-        });
+        }
         
         // 清除分析结果
         setAnalysisResult(null);
@@ -294,7 +299,7 @@ export default function AnalysisScreen() {
         from: lastUndo.move.from,
         to: lastUndo.move.to,
         promotion: lastUndo.move.promotion
-      });
+      }) as ChessMoveResult;
       
       if (result) {
         // 更新状态
@@ -312,6 +317,19 @@ export default function AnalysisScreen() {
           return newHistory;
         });
         
+        // 处理吃子情况
+        if (result.captured) {
+          if (result.color === 'w') {
+            // 白方吃子，存储小写字母（黑棋）
+            setCapturedByWhite(prev => [...prev, result.captured as string]);
+          } else {
+            // 黑方吃子，将小写字母转为大写（白棋）
+            const capturedPiece = result.captured as string;
+            const upperCasePiece = capturedPiece.toUpperCase();
+            setCapturedByBlack(prev => [...prev, upperCasePiece]);
+          }
+        }
+        
         // 清除分析结果
         setAnalysisResult(null);
         setShowResultPanel(false);
@@ -322,11 +340,6 @@ export default function AnalysisScreen() {
     } catch (err) {
       console.error('前进错误:', err);
     }
-  };
-  
-  // 翻转棋盘
-  const flipBoard = () => {
-    setOrientation(orientation === 'white' ? 'black' : 'white');
   };
   
   // 重置为初始局面
@@ -340,6 +353,8 @@ export default function AnalysisScreen() {
     setShowResultPanel(false);
     setMoveHistory([]);
     setUndoHistory([]);
+    setCapturedByWhite([]);
+    setCapturedByBlack([]);
     setGameResult({
       isGameOver: false,
       winner: null,
@@ -386,6 +401,24 @@ export default function AnalysisScreen() {
   // 渲染组件
   return (
     <ScrollView style={styles.container}>
+      {/* 顶部玩家信息 */}
+      <Card style={[styles.playerCard, styles.compactPlayerCard]}>
+        <Card.Content style={styles.compactCardContent}>
+          <View style={styles.playerInfo}>
+            <Text style={styles.playerName}>
+              {orientation === 'white' ? '黑方' : '白方'}
+            </Text>
+            <CapturedPieces 
+              capturedByWhite={capturedByWhite}
+              capturedByBlack={capturedByBlack}
+              side={orientation === 'white' ? 'black' : 'white'}
+              position="top"
+            />
+          </View>
+        </Card.Content>
+      </Card>
+      
+      {/* 棋盘 */}
       <Card style={styles.chessboardCard}>
         <Card.Content style={styles.chessboardContainer}>
           <Chessboard 
@@ -397,8 +430,25 @@ export default function AnalysisScreen() {
         </Card.Content>
       </Card>
       
-      <Card style={styles.controlCard}>
-        <Card.Content>
+      {/* 底部玩家信息 */}
+      <Card style={[styles.playerCard, styles.compactPlayerCard]}>
+        <Card.Content style={styles.compactCardContent}>
+          <View style={styles.playerInfo}>
+            <Text style={styles.playerName}>
+              {orientation === 'white' ? '白方' : '黑方'}
+            </Text>
+            <CapturedPieces 
+              capturedByWhite={capturedByWhite}
+              capturedByBlack={capturedByBlack}
+              side={orientation === 'white' ? 'white' : 'black'}
+              position="bottom"
+            />
+          </View>
+        </Card.Content>
+      </Card>
+      
+      <Card style={[styles.controlCard, styles.compactPlayerCard]}>
+        <Card.Content style={styles.compactCardContent}>
           <ControlPanel 
             onUndo={undoMove}
             onRedo={redoMove}
@@ -441,8 +491,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  playerCard: {
+    margin: 16,
+    marginBottom: 0,
+    elevation: 3,
+    borderRadius: 12,
+  },
+  compactPlayerCard: {
+    height: 'auto',  // 自适应高度
+  },
+  compactCardContent: {
+    paddingVertical: 0,  // 完全移除上下内边距
+    paddingHorizontal: 8, // 减小水平内边距
+    margin: 0, // 移除所有外边距
+  },
+  playerInfo: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginVertical: 0,  // 完全移除垂直外边距
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 0, // 完全移除垂直内边距
+    height: 24, // 强制设置一个较小的高度
+  },
+  playerName: {
+    fontSize: 12, // 进一步减小字体大小
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+  capturedText: {
+    fontSize: 14,
+    color: '#666',
+  },
   chessboardCard: {
     margin: 16,
+    marginTop: 8,
+    marginBottom: 8,
     elevation: 4,
     borderRadius: 12,
   },
@@ -452,7 +536,7 @@ const styles = StyleSheet.create({
   },
   controlCard: {
     margin: 16,
-    marginTop: 0,
+    marginTop: 8,
     elevation: 3,
     borderRadius: 12,
   },
@@ -462,5 +546,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderRadius: 12,
     marginBottom: 24,
+  },
+  capturedCard: {
+    margin: 16,
+    marginTop: 0,
+    elevation: 3,
+    borderRadius: 12,
   },
 });

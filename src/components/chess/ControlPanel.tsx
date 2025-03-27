@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, IconButton } from 'react-native-paper';
 
 type ControlPanelProps = {
   onUndo: () => void;
@@ -20,62 +20,50 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   canRedo
 }) => {
   return (
-    <View>
-      <View style={styles.controlRow}>
-        <Button 
-          mode="contained" 
-          onPress={onUndo}
-          style={styles.controlButton}
+    <View style={styles.container}>
+      <View style={styles.buttonRow}>
+        <IconButton
           icon="undo"
+          size={24}
+          onPress={onUndo}
           disabled={!canUndo}
-        >
-          撤销
-        </Button>
-        
-        <Button 
-          mode="contained" 
-          onPress={onRedo}
-          style={styles.controlButton}
+          style={styles.iconButton}
+        />
+        <IconButton
           icon="redo"
+          size={24}
+          onPress={onRedo}
           disabled={!canRedo}
-        >
-          前进
-        </Button>
-      </View>
-      
-      <View style={styles.controlRow}>
-        <Button 
-          mode="contained" 
-          onPress={onFlipBoard}
-          style={styles.controlButton}
+          style={styles.iconButton}
+        />
+        <IconButton
           icon="rotate-3d"
-        >
-          翻转棋盘
-        </Button>
-        
-        <Button 
-          mode="contained" 
+          size={24}
+          onPress={onFlipBoard}
+          style={styles.iconButton}
+        />
+        <IconButton
+          icon="refresh"
+          size={24}
           onPress={onReset}
-          style={styles.controlButton}
-          icon="restore"
-        >
-          初始局面
-        </Button>
+          style={styles.iconButton}
+        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  controlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+  container: {
+    padding: 8,
   },
-  controlButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    backgroundColor: '#5d8a48',
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  iconButton: {
+    margin: 0,
   },
 });
 

@@ -14,3 +14,24 @@ export type AnalysisResult = {
   pv: string[];
   pvSan: string[];
 };
+
+// 走子历史记录类型
+export type MoveHistory = {
+  from: string;
+  to: string;
+  promotion?: string;
+  san: string;
+  captured?: string;
+};
+
+// 棋子移动结果类型
+export interface ChessMoveResult {
+  color: 'w' | 'b';
+  from: string;
+  to: string;
+  flags: string;
+  piece: string;
+  san: string;
+  captured?: string;
+  promotion?: string;
+}
