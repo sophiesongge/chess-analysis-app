@@ -5,7 +5,7 @@ import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { analyzePosition } from '../services/api';
+import { analyzePosition, getBestMove } from '../services/api';
 import ControlPanel from '../components/chess/ControlPanel';
 import AnalysisPanel from '../components/chess/AnalysisPanel';
 import AnalysisResultInline from '../components/chess/AnalysisResultInline';
@@ -417,6 +417,32 @@ export default function AnalysisScreen() {
     }
   };
   
+  // 添加电脑走棋功能
+  const makeComputerMove = async () => {
+    try {
+      // 获取当前局面的FEN
+      const currentFen = chess.fen();
+      
+      // 调用API获取最佳走法
+      const bestMove = await getBestMove(currentFen, analysisDepth);
+      
+      if (bestMove && bestMove.length >= 4) {
+        // 解析最佳走法
+        const from = bestMove.substring(0, 2);
+        const to = bestMove.substring(2, 4);
+        const promotion = bestMove.length > 4 ? bestMove.substring(4, 5) : undefined;
+        
+        // 执行走法
+        handleMove({ from, to, promotion });
+      } else {
+        alert('无法获取有效的电脑走法');
+      }
+    } catch (error) {
+      console.error('电脑走棋错误:', error);
+      alert(`电脑走棋出错: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  
   // 分析当前局面
   const analyzeCurrentPosition = async () => {
     setIsAnalyzing(true);
@@ -427,22 +453,22 @@ export default function AnalysisScreen() {
       // 获取当前局面的FEN
       const currentFen = chess.fen();
       
-      // 识别当前开局
+      // 调用后端API进行分析
+      const result = await analyzePosition(currentFen, analysisDepth);
+      
+      // 识别开局 - 直接使用我们自己的函数
       const opening = identifyOpening(moveHistory);
       
-      // 根据当前局面生成模拟分析结果
-      const mockResult = generateMockAnalysisResult(chess, analysisDepth, opening);
-      
-      // 延迟一下模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 将开局信息添加到分析结果中
+      if (opening) {
+        result.opening = opening;
+      }
       
       // 设置分析结果
-      setAnalysisResult(mockResult);
+      setAnalysisResult(result);
       
-      // 使用setTimeout确保状态更新后再显示面板
-      setTimeout(() => {
-        setShowResultPanel(true);
-      }, 500);
+      // 显示结果面板
+      setShowResultPanel(true);
       
     } catch (error) {
       console.error('分析错误:', error);
@@ -722,6 +748,7 @@ export default function AnalysisScreen() {
             onRedo={redoMove}
             onFlipBoard={flipBoard}
             onReset={resetToInitialPosition}
+            onComputerMove={makeComputerMove} // 添加电脑走棋功能
             canUndo={moveHistory.length > 0}
             canRedo={undoHistory.length > 0}
           />
