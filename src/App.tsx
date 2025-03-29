@@ -1,21 +1,27 @@
 import React from 'react';
+import { SafeAreaView, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './screens/HomeScreen';
+// 修改导入方式，确保正确导入 AnalysisScreen 组件
 import AnalysisScreen from './screens/AnalysisScreen';
-import { ChessProvider } from './context/ChessContext';
 
 const Stack = createStackNavigator();
 
-export default function App() {
+const App = () => {
   return (
-    <ChessProvider>
+    <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
-          <Stack.Screen name="Home" component={HomeScreen} options={{ title: '国际象棋' }} />
-          <Stack.Screen name="Analyse" component={AnalysisScreen} options={{ title: '局面分析' }} />
+        <Stack.Navigator initialRouteName="Analysis">
+          <Stack.Screen 
+            name="Analysis" 
+            component={AnalysisScreen} 
+            options={{ title: '棋局分析' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
-    </ChessProvider>
+    </SafeAreaView>
   );
-}
+};
+
+export default App;

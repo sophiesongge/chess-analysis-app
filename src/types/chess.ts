@@ -39,6 +39,7 @@ export interface ChessMoveResult {
 
 // 添加走法评估类型
 export interface MoveEvaluation {
+  bestMove?: string;  // 最佳走法
   scoreBefore: number;  // 走子前的评分
   scoreAfter: number;   // 走子后的评分
   scoreDiff: number;    // 评分差异

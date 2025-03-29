@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Alert } from 'react-native';
 import { Card } from 'react-native-paper';
 import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
@@ -52,6 +52,9 @@ export default function AnalysisScreen() {
     winner: null,
     kingPosition: null
   });
+  
+  // 添加当前走法状态
+  const [currentMove, setCurrentMove] = useState<ChessMoveResult | null>(null);
   
   // 走子历史相关状态
   const [moveHistory, setMoveHistory] = useState<any[]>([]);
@@ -174,6 +177,7 @@ export default function AnalysisScreen() {
     setUndoHistory([]);
     setCapturedByWhite([]);
     setCapturedByBlack([]);
+    setCurrentMove(null); // 重置当前走法
     setGameResult({
       isGameOver: false,
       winner: null,
@@ -218,11 +222,11 @@ export default function AnalysisScreen() {
       // 只有在showAlert为true且不是从主页面传递过来的游戏结果时才显示弹窗
       if (showAlert && !historyLoaded) {
         if (winner === 'white') {
-          alert('白方获胜！');
+          Alert.alert('游戏结束', '白方获胜！');
         } else if (winner === 'black') {
-          alert('黑方获胜！');
+          Alert.alert('游戏结束', '黑方获胜！');
         } else if (winner === 'draw') {
-          alert('和棋！');
+          Alert.alert('游戏结束', '和棋！');
         }
       }
     } else {
@@ -250,6 +254,9 @@ export default function AnalysisScreen() {
       const result = chess.move(move) as ChessMoveResult;
       
       if (result) {
+        // 更新当前走法状态
+        setCurrentMove(result);
+        
         // 更新状态
         const newFen = chess.fen();
         setFen(newFen);
@@ -295,15 +302,6 @@ export default function AnalysisScreen() {
   // 添加状态
   const [moveEvaluation, setMoveEvaluation] = useState<MoveEvaluation | null>(null);
   
-  // 在渲染中传递给AnalysisResultModal
-  // 注意：这段代码不应该单独存在于此处，应该在return语句中
-  // <AnalysisResultModal 
-  //   visible={showResultPanel}
-  //   onClose={() => setShowResultPanel(false)}
-  //   result={analysisResult}
-  //   moveEvaluation={moveEvaluation}
-  // />
-  
   // 撤销走法
   const undoMove = () => {
     try {
@@ -319,6 +317,9 @@ export default function AnalysisScreen() {
       const move = chess.undo() as ChessMoveResult;
       
       if (move) {
+        // 更新当前走法状态为null（因为撤销了）
+        setCurrentMove(null);
+        
         // 更新状态
         const newFen = chess.fen();
         setFen(newFen);
@@ -389,6 +390,9 @@ export default function AnalysisScreen() {
       }) as ChessMoveResult;
       
       if (result) {
+        // 更新当前走法状态
+        setCurrentMove(result);
+        
         // 更新状态
         const newFen = chess.fen();
         setFen(newFen);
@@ -447,11 +451,11 @@ export default function AnalysisScreen() {
         // 执行走法
         handleMove({ from, to, promotion });
       } else {
-        alert('无法获取有效的电脑走法');
+        Alert.alert('提示', '无法获取有效的电脑走法');
       }
     } catch (error) {
       console.error('电脑走棋错误:', error);
-      alert(`电脑走棋出错: ${error instanceof Error ? error.message : String(error)}`);
+      Alert.alert('错误', `电脑走棋出错: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
   
@@ -497,7 +501,7 @@ export default function AnalysisScreen() {
       
     } catch (error) {
       console.error('分析错误:', error);
-      alert(`分析出错: ${error instanceof Error ? error.message : String(error)}`);
+      Alert.alert(`分析出错: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -788,7 +792,8 @@ export default function AnalysisScreen() {
             onDepthChange={setAnalysisDepth}
             onAnalyze={analyzeCurrentPosition}
             isAnalyzing={isAnalyzing}
-            moveEvaluation={moveEvaluation} // 添加缺少的moveEvaluation属性
+            moveEvaluation={moveEvaluation}
+            currentMove={currentMove?.san} // 使用 SAN 表示法作为当前走法
           />
           
           {/* 移除内联结果显示 */}

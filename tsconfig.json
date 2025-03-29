@@ -14,7 +14,9 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "noEmit": true,
-    "skipLibCheck": true
-  },
-  "extends": "expo/tsconfig.base"
+    "skipLibCheck": true,
+    "target": "esnext",
+    "lib": ["esnext"]
+  }
+  // 移除 "extends": "expo/tsconfig.base" 行
 }

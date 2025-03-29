@@ -19,12 +19,12 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   onAnalyze,
   isAnalyzing,
   moveEvaluation,
-  currentMove
+  currentMove // 移除默认值
 }) => {
   // 根据走法质量获取对应的图标和颜色
   const getMoveQualityInfo = (evaluation?: MoveEvaluation | null) => {
     if (!evaluation || evaluation.scoreDiff === undefined) {
-      return { icon: '', color: '#000000', text: '' };
+      return { icon: '❓', color: '#9e9e9e', text: '未评估' };
     }
     
     const scoreDiff = evaluation.scoreDiff;
@@ -39,6 +39,12 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   
   // 获取当前走法的质量信息
   const qualityInfo = getMoveQualityInfo(moveEvaluation);
+  
+  // 添加调试信息
+  // 添加调试信息
+  console.log('【AnalysisPanel】当前走法 (原始):', currentMove);
+  console.log('【AnalysisPanel】走法评估:', moveEvaluation);
+  console.log('【AnalysisPanel】质量信息:', qualityInfo);
   
   return (
     <View style={styles.container}>
@@ -69,18 +75,26 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         </View>
       </View>
       
-      {/* 添加当前走法和评估显示 */}
-      {currentMove && moveEvaluation && (
-        <View style={styles.moveContainer}>
-          <Text style={styles.moveLabel}>当前走法：</Text>
-          <View style={styles.moveInfoContainer}>
-            <Text style={styles.moveText}>{currentMove}</Text>
-            <View style={[styles.qualityBadge, { backgroundColor: qualityInfo.color }]}>
-              <Text style={styles.qualityText}>{qualityInfo.icon} {qualityInfo.text}</Text>
-            </View>
-          </View>
+      {/* 修改条件渲染逻辑，始终显示走法信息区域 */}
+      <View style={styles.moveContainer}>
+        <Text style={styles.moveLabel}>当前走法：</Text>
+        <View style={styles.moveInfoContainer}>
+          {currentMove ? (
+            <>
+              <Text style={styles.moveText}>{currentMove}</Text>
+              {moveEvaluation && moveEvaluation.scoreDiff !== undefined ? (
+                <View style={[styles.qualityBadge, { backgroundColor: qualityInfo.color }]}>
+                  <Text style={styles.qualityText}>{qualityInfo.icon} {qualityInfo.text}</Text>
+                </View>
+              ) : (
+                <Text style={styles.noEvalText}>尚未分析</Text>
+              )}
+            </>
+          ) : (
+            <Text style={styles.noMoveText}>请走棋或选择一步棋</Text>
+          )}
         </View>
-      )}
+      </View>
       
       <Button
         mode="contained"
@@ -198,21 +212,27 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 10,
   },
   moveLabel: {
     fontSize: 16,
     marginRight: 10,
     width: '25%',
+    color: '#333333',
   },
   moveInfoContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap', // 允许内容换行
   },
   moveText: {
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 10,
+    color: '#333333',
   },
   qualityBadge: {
     paddingHorizontal: 8,
@@ -220,12 +240,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 4, // 在小屏幕上可能需要换行，添加一些上边距
   },
   qualityText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
   },
+  noEvalText: {
+    color: '#757575',
+    fontStyle: 'italic',
+    fontSize: 14,
+  },
+  noMoveText: {
+    color: '#757575',
+    fontStyle: 'italic',
+    fontSize: 14,
+  }
 });
 
 export default AnalysisPanel;
