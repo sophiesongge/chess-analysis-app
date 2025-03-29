@@ -48,6 +48,16 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
                 分析深度: {result.depth}
               </Text>
               
+              {/* 添加开局信息显示 */}
+              {result.opening && (
+                <View style={styles.openingContainer}>
+                  <Text style={styles.openingText}>开局: {result.opening.name}</Text>
+                  {result.opening.variation && (
+                    <Text style={styles.openingVariationText}>变例: {result.opening.variation}</Text>
+                  )}
+                </View>
+              )}
+              
               <Text style={styles.bestMoveTitle}>最佳走法:</Text>
               <Chip 
                 style={styles.bestMoveChip} 
@@ -145,6 +155,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f8e9',
     padding: 12,
     borderRadius: 8,
+    color: '#555',
+  },
+  openingContainer: {
+    marginVertical: 8,
+    padding: 8,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
+  },
+  openingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  openingVariationText: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 4,
   },
 });
 

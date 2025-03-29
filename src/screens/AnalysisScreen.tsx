@@ -424,15 +424,14 @@ export default function AnalysisScreen() {
     setShowResultPanel(false);
     
     try {
-      // 创建模拟数据用于测试
-      const mockResult = {
-        score: 0.35,
-        bestMove: 'e2e4',
-        bestMoveSan: 'e4',
-        depth: analysisDepth,
-        pv: ['e2e4', 'e7e5', 'g1f3'],
-        pvSan: ['e4', 'e5', 'Nf3']
-      };
+      // 获取当前局面的FEN
+      const currentFen = chess.fen();
+      
+      // 识别当前开局
+      const opening = identifyOpening(moveHistory);
+      
+      // 根据当前局面生成模拟分析结果
+      const mockResult = generateMockAnalysisResult(chess, analysisDepth, opening);
       
       // 延迟一下模拟API调用
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -451,6 +450,212 @@ export default function AnalysisScreen() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+  
+  // 根据走子历史识别开局
+  const identifyOpening = (history: any[]): { name: string, variation: string } | null => {
+    if (history.length === 0) return null;
+    
+    // 将走子历史转换为SAN格式的数组
+    const sanMoves = history.map(move => move.san);
+    const movesStr = sanMoves.join(' ');
+    
+    // 更详细的开局数据库
+    const openings = [
+      { 
+        moves: 'e4', 
+        name: '王翼开局', 
+        variations: [
+          { moves: 'e4 e5', name: '开放式对局' },
+          { moves: 'e4 e5 Nf3', name: '国王骑士开局' },
+          { moves: 'e4 e5 Nf3 Nc6', name: '四骑士开局前奏' },
+          { moves: 'e4 e5 Nf3 Nc6 Nc3', name: '四骑士开局' },
+          { moves: 'e4 e5 Nf3 Nc6 Bc4', name: '意大利开局' },
+          { moves: 'e4 e5 Nf3 Nc6 Bb5', name: '西班牙开局' },
+          { moves: 'e4 e5 Nf3 Nc6 d4', name: '苏格兰开局' },
+          { moves: 'e4 e5 Nf3 Nc6 d4 exd4', name: '苏格兰开局：正统变例' },
+          { moves: 'e4 e5 Nf3 Nc6 d4 exd4 Nxd4', name: '苏格兰开局：施密特变例' },
+          { moves: 'e4 e5 Nf3 Nc6 d4 exd4 c3', name: '苏格兰开局：弃兵变例' },
+          { moves: 'e4 e5 Nf3 Nc6 d4 exd4 c3 dxc3', name: '苏格兰开局：弃兵变例，接受' },
+          { moves: 'e4 e5 Nf3 Nc6 d4 exd4 c3 d3', name: '苏格兰开局：弃兵变例，米埃塞斯防御' },
+          { moves: 'e4 c5', name: '西西里防御' },
+          { moves: 'e4 c5 Nf3', name: '西西里防御：开放变例' },
+          { moves: 'e4 c5 Nf3 d6', name: '西西里防御：纳杰多夫变例' },
+          { moves: 'e4 c5 Nf3 Nc6', name: '西西里防御：老西西里变例' },
+          { moves: 'e4 c5 c3', name: '西西里防御：阿拉平变例' },
+          { moves: 'e4 e6', name: '法国防御' },
+          { moves: 'e4 e6 d4', name: '法国防御：正统变例' },
+          { moves: 'e4 e6 d4 d5', name: '法国防御：正统变例' },
+          { moves: 'e4 e6 d4 d5 e5', name: '法国防御：前进变例' },
+          { moves: 'e4 e6 d4 d5 Nc3', name: '法国防御：温科维茨变例' },
+          { moves: 'e4 c6', name: '卡罗-卡恩防御' },
+        ]
+      },
+      { 
+        moves: 'd4', 
+        name: '后翼开局', 
+        variations: [
+          { moves: 'd4 d5', name: '后兵开局' },
+          { moves: 'd4 d5 c4', name: '后翼兵种开局' },
+          { moves: 'd4 d5 c4 e6', name: '后翼兵种开局：正统变例' },
+          { moves: 'd4 d5 c4 c6', name: '斯拉夫防御' },
+          { moves: 'd4 d5 c4 dxc4', name: '后翼兵种开局：接受变例' },
+          { moves: 'd4 Nf6', name: '印度防御' },
+          { moves: 'd4 Nf6 c4', name: '印度防御系统' },
+          { moves: 'd4 Nf6 c4 e6', name: '波哥柳波夫防御' },
+          { moves: 'd4 Nf6 c4 g6', name: '国王印度防御' },
+          { moves: 'd4 Nf6 c4 g6 Nc3 Bg7', name: '国王印度防御：正统变例' },
+          { moves: 'd4 Nf6 c4 e6 Nf3 b6', name: '印度防御：尼姆佐维奇变例' },
+        ]
+      },
+      { 
+        moves: 'c4', 
+        name: '英国开局', 
+        variations: [
+          { moves: 'c4 e5', name: '英国对称开局' },
+          { moves: 'c4 c5', name: '英国对称变例' },
+          { moves: 'c4 Nf6', name: '英国开局：印度防御' },
+          { moves: 'c4 e6', name: '英国开局：阿加塔变例' },
+        ]
+      },
+      { 
+        moves: 'Nf3', 
+        name: '雷蒂开局', 
+        variations: [
+          { moves: 'Nf3 d5', name: '雷蒂开局：王翼攻击' },
+          { moves: 'Nf3 Nf6', name: '雷蒂开局：对称变例' },
+          { moves: 'Nf3 c5', name: '雷蒂开局：英国变例' },
+        ]
+      },
+      {
+        moves: 'e4 d5',
+        name: '斯堪的纳维亚防御',
+        variations: [
+          { moves: 'e4 d5 exd5', name: '斯堪的纳维亚防御：接受变例' },
+          { moves: 'e4 d5 Nc3', name: '斯堪的纳维亚防御：现代变例' },
+        ]
+      },
+      {
+        moves: 'e4 Nf6',
+        name: '阿列欣防御',
+        variations: [
+          { moves: 'e4 Nf6 e5', name: '阿列欣防御：前进变例' },
+          { moves: 'e4 Nf6 Nc3', name: '阿列欣防御：四骑士变例' },
+        ]
+      },
+    ];
+    
+    // 查找匹配的开局
+    let matchedOpening = null;
+    let matchedVariation = null;
+    let longestMatch = 0;
+    
+    // 遍历所有开局
+    for (const opening of openings) {
+      // 检查第一步是否匹配
+      if (movesStr.startsWith(opening.moves)) {
+        // 如果匹配的步数比之前找到的更长，则更新
+        if (opening.moves.split(' ').length > longestMatch) {
+          longestMatch = opening.moves.split(' ').length;
+          matchedOpening = opening.name;
+          matchedVariation = null;
+        }
+        
+        // 检查变例
+        for (const variation of opening.variations) {
+          if (movesStr.startsWith(variation.moves)) {
+            // 如果变例匹配的步数比之前找到的更长，则更新
+            if (variation.moves.split(' ').length > longestMatch) {
+              longestMatch = variation.moves.split(' ').length;
+              matchedOpening = opening.name;
+              matchedVariation = variation.name;
+            }
+          }
+        }
+      }
+    }
+    
+    if (matchedOpening) {
+      return {
+        name: matchedOpening,
+        variation: matchedVariation || ''
+      };
+    }
+    
+    return null;
+  };
+  
+  // 根据当前棋盘状态生成模拟分析结果
+  const generateMockAnalysisResult = (
+    chessInstance: Chess, 
+    depth: number,
+    opening: { name: string, variation: string } | null
+  ): AnalysisResult => {
+    // 获取所有合法走法
+    const moves = chessInstance.moves({ verbose: true });
+    
+    // 如果没有合法走法，返回游戏结束的分析结果
+    if (moves.length === 0) {
+      return {
+        score: chessInstance.isCheckmate() ? (chessInstance.turn() === 'w' ? -99 : 99) : 0,
+        bestMove: '',
+        bestMoveSan: '',
+        depth: depth,
+        pv: [],
+        pvSan: [],
+        opening: opening // 添加开局信息
+      };
+    }
+    
+    // 随机选择一个"最佳"走法
+    const bestMoveIndex = Math.floor(Math.random() * Math.min(3, moves.length));
+    const bestMove = moves[bestMoveIndex];
+    
+    // 生成随机评分，范围在-2到2之间
+    // 如果是白方回合，倾向于正分；如果是黑方回合，倾向于负分
+    const baseScore = (Math.random() * 4 - 2);
+    const turnBonus = chessInstance.turn() === 'w' ? 0.5 : -0.5;
+    const score = parseFloat((baseScore + turnBonus).toFixed(2));
+    
+    // 创建临时棋盘来生成主要变化路线
+    const tempChess = new Chess(chessInstance.fen());
+    const pvMoves = [];
+    const pvSanMoves = [];
+    
+    // 执行"最佳"走法
+    const moveResult = tempChess.move(bestMove);
+    if (moveResult) {
+      pvMoves.push(bestMove.from + bestMove.to + (bestMove.promotion || ''));
+      pvSanMoves.push(moveResult.san);
+      
+      // 再生成2-3步后续走法
+      const numFollowUpMoves = Math.floor(Math.random() * 2) + 2;
+      for (let i = 0; i < numFollowUpMoves; i++) {
+        const followUpMoves = tempChess.moves({ verbose: true });
+        if (followUpMoves.length === 0) break;
+        
+        const followUpIndex = Math.floor(Math.random() * followUpMoves.length);
+        const followUpMove = followUpMoves[followUpIndex];
+        const followUpResult = tempChess.move(followUpMove);
+        
+        if (followUpResult) {
+          pvMoves.push(followUpMove.from + followUpMove.to + (followUpMove.promotion || ''));
+          pvSanMoves.push(followUpResult.san);
+        } else {
+          break;
+        }
+      }
+    }
+    
+    return {
+      score: score,
+      bestMove: bestMove.from + bestMove.to + (bestMove.promotion || ''),
+      bestMoveSan: bestMove.san,
+      depth: depth,
+      pv: pvMoves,
+      pvSan: pvSanMoves,
+      opening: opening // 添加开局信息
+    };
   };
   
   // 监听 fen 变化，更新吃子显示
@@ -533,9 +738,7 @@ export default function AnalysisScreen() {
             isAnalyzing={isAnalyzing}
           />
           
-          {analysisResult && !isAnalyzing && (
-            <AnalysisResultInline result={analysisResult} />
-          )}
+          {/* 移除内联结果显示 */}
         </Card.Content>
       </Card>
       

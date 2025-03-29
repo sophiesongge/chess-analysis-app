@@ -13,6 +13,7 @@ export type AnalysisResult = {
   depth: number;
   pv: string[];
   pvSan: string[];
+  opening?: { name: string; variation: string } | null; // 添加开局信息
 };
 
 // 走子历史记录类型
