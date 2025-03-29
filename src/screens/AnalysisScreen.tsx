@@ -463,16 +463,29 @@ export default function AnalysisScreen() {
     try {
       // 获取当前局面的FEN
       const currentFen = chess.fen();
+      console.log('当前分析的FEN:', currentFen);
       
       // 调用后端API进行分析
+      console.log('开始调用分析API，深度:', analysisDepth);
       const result = await analyzePosition(currentFen, analysisDepth);
       
-      // 识别开局 - 直接使用我们自己的函数
-      const opening = identifyOpening(moveHistory);
+      // 添加调试日志
+      console.log('API返回的分析结果:', JSON.stringify(result, null, 2));
       
-      // 将开局信息添加到分析结果中
-      if (opening) {
-        result.opening = opening;
+      // 检查API是否返回了开局信息
+      if (!result.opening) {
+        // 只有当API没有返回开局信息时，才使用本地识别
+        console.log('API没有返回开局信息，使用本地识别');
+        const opening = identifyOpening(moveHistory);
+        console.log('本地识别的开局:', opening);
+        
+        // 将开局信息添加到分析结果中
+        if (opening) {
+          result.opening = opening;
+          console.log('使用本地识别的开局信息:', result.opening);
+        }
+      } else {
+        console.log('使用API返回的开局信息:', result.opening);
       }
       
       // 设置分析结果
@@ -542,7 +555,7 @@ export default function AnalysisScreen() {
           { moves: 'd4 Nf6 c4 e6', name: '波哥柳波夫防御' },
           { moves: 'd4 Nf6 c4 g6', name: '国王印度防御' },
           { moves: 'd4 Nf6 c4 g6 Nc3 Bg7', name: '国王印度防御：正统变例' },
-          { moves: 'd4 Nf6 c4 e6 Nf3 b6', name: '印度防御：尼姆佐维奇变例' },
+          { moves: 'd4 Nf6 c4 e6 Nf3 b6', name: 'India防御：尼姆佐维奇变例' },
         ]
       },
       { 

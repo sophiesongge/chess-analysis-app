@@ -2,6 +2,8 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Modal } from 'react-native';
 import { Text, Chip, IconButton, ProgressBar } from 'react-native-paper';
 import { AnalysisResult, MoveEvaluation } from '../../types/chess';
+// 导入ScoreProgressBar组件
+import ScoreProgressBar from './ScoreProgressBar';
 // 不再需要formatScore函数
 // import { formatScore } from '../../utils/chessUtils';
 
@@ -30,14 +32,43 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
   result,
   moveEvaluation
 }) => {
-  // 计算评分条的值（范围从-1到1）
+  // 计算评分条的值（范围从0到1）
+  // 优化getScoreBarValue函数
   const getScoreBarValue = (score: number | undefined) => {
-    // 如果score不是数字，返回0.5（中间值）
     if (typeof score !== 'number') return 0.5;
     
-    // 将评分限制在-5到5的范围内，然后映射到0到1
-    const normalizedScore = Math.max(-5, Math.min(5, score));
-    return (normalizedScore + 5) / 10;
+    // 将分数限制在合理范围内，通常±3就已经是很大的优势了
+    const cappedScore = Math.min(Math.max(score, -3), 3);
+    
+    // 将分数映射到0-1范围
+    // 0表示黑方完全优势，1表示白方完全优势，0.5表示均势
+    const normalizedScore = (cappedScore + 3) / 6;
+    
+    console.log('计算进度条值，原始分数:', score);
+    console.log('标准化后的分数:', cappedScore, '进度条值:', normalizedScore);
+    
+    return normalizedScore;
+  };
+  
+  // 获取评分文本显示
+  const getScoreText = (score: number | undefined) => {
+    if (typeof score !== 'number') return '未知';
+  
+    if (score >= 99) return '白方获胜';
+    if (score <= -99) return '黑方获胜';
+  
+    // 显示实际的评分值，保留两位小数
+    return (score > 0 ? '+' : '') + score.toFixed(2);
+  };
+  
+  // 获取评分颜色
+  const getScoreColor = (score: number | undefined) => {
+    if (typeof score !== 'number') return '#757575';
+  
+    if (score >= 99) return '#2e7d32'; // 白方获胜 - 绿色
+    if (score <= -99) return '#d32f2f'; // 黑方获胜 - 红色
+  
+    return score > 0 ? '#2e7d32' : score < 0 ? '#d32f2f' : '#757575';
   };
   
   return (
@@ -60,27 +91,19 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
           
           {result ? (
             <ScrollView style={styles.resultScrollView}>
-              {/* 评分显示 */}
+              {/* 评分显示 - 使用新的ScoreProgressBar组件 */}
               <View style={styles.scoreContainer}>
-                <Text style={styles.scoreText}>
-                  评分: <Text style={{
-                    color: result.score > 0 ? '#2e7d32' : result.score < 0 ? '#d32f2f' : '#757575'
-                  }}>
-                    {typeof result.score === 'number' ? (result.score > 0 ? '+' : '') + result.score.toFixed(2) : '未知'}
-                  </Text>
-                </Text>
-                <ProgressBar 
-                  progress={getScoreBarValue(result.score)} 
-                  color={result.score > 0 ? '#2e7d32' : '#d32f2f'} 
-                  style={styles.scoreBar}
-                />
+                <Text style={styles.scoreText}>评分:</Text>
+                {/* 替换原有的进度条为新组件 */}
+                <ScoreProgressBar score={result.score || 0} />
               </View>
               
+              {/* 分析深度 - 添加默认值 */}
               <Text style={styles.depthText}>
-                分析深度: {result.depth}
+                分析深度: {result.depth || '未知'}
               </Text>
               
-              {/* 走法评估 */}
+              {/* 走法评估 - 保持不变 */}
               {moveEvaluation && (
                 <View style={styles.evaluationContainer}>
                   <View style={styles.evaluationHeader}>
@@ -130,15 +153,15 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
                 </View>
               )}
               
-              {/* 开局信息 */}
-              {result.opening && (
+              {/* 开局信息 - 添加条件检查确保有有效的开局名称 */}
+              {result.opening && result.opening.name && result.opening.name !== 'name' ? (
                 <View style={styles.openingContainer}>
                   <Text style={styles.openingText}>开局: {result.opening.name}</Text>
-                  {result.opening.variation && (
+                  {result.opening.variation && result.opening.variation !== 'pgn' && (
                     <Text style={styles.openingVariationText}>变例: {result.opening.variation}</Text>
                   )}
                 </View>
-              )}
+              ) : null}
               
               {/* 最佳走法 */}
               <Text style={styles.bestMoveTitle}>最佳走法:</Text>
@@ -191,15 +214,37 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    borderWidth: 1,
+    borderColor: '#1b5e20', // 添加深绿色边框
   },
   // 添加缺失的样式
   scoreContainer: {
     marginBottom: 12,
   },
+  scoreBarContainer: {
+    position: 'relative',
+    marginTop: 8,
+    height: 24, // 增加进度条高度
+  },
   scoreBar: {
-    height: 8,
-    borderRadius: 4,
-    marginTop: 4,
+    height: 24, // 增加进度条高度
+    borderRadius: 12,
+  },
+  scoreValueOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scoreValueText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(255, 255, 255, 0.7)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   evaluationContainer: {
     marginVertical: 12,
