@@ -36,3 +36,13 @@ export interface ChessMoveResult {
   captured?: string;
   promotion?: string;
 }
+
+// 添加走法评估类型
+export interface MoveEvaluation {
+  scoreBefore: number;  // 走子前的评分
+  scoreAfter: number;   // 走子后的评分
+  scoreDiff: number;    // 评分差异
+  quality: string;      // 走法质量评价
+  reason: string;       // 评估原因
+  betterMove?: string;  // 更好的走法（如果有）
+}

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { Chess } from 'chess.js'; // 添加这一行导入Chess
-import { AnalysisResult } from '../types/chess';
+import { Chess } from 'chess.js'; 
+import { AnalysisResult, MoveEvaluation } from '../types/chess'; // 添加 MoveEvaluation 导入
 
 // API基础URL - 放在文件顶部
 const API_BASE_URL = 'http://localhost:8000'; // 使用本地后端地址
@@ -129,4 +129,39 @@ const generateMockAnalysisResult = (fen: string, depth: number): AnalysisResult 
     pvSan: [],
     opening: null
   };
+};
+
+/**
+ * 评估走法质量
+ * @param fen 走子前的FEN
+ * @param move 走法（例如"e2e4"）
+ * @param depth 分析深度
+ * @returns 走法评估结果
+ */
+export const evaluateMove = async (
+  fen: string, 
+  move: string, 
+  depth: number = 15
+): Promise<MoveEvaluation> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/evaluate-move`, {
+      fen,
+      move,
+      depth
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('评估走法失败:', error);
+    
+    // 返回模拟评估结果
+    return {
+      scoreBefore: 0,
+      scoreAfter: 0,
+      scoreDiff: 0,
+      quality: '一般',
+      reason: '无法获取评估结果',
+      betterMove: undefined
+    };
+  }
 };

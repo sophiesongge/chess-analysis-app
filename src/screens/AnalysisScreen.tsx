@@ -5,12 +5,12 @@ import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { analyzePosition, getBestMove } from '../services/api';
+import { analyzePosition, getBestMove, evaluateMove } from '../services/api';
 import ControlPanel from '../components/chess/ControlPanel';
 import AnalysisPanel from '../components/chess/AnalysisPanel';
 import AnalysisResultInline from '../components/chess/AnalysisResultInline';
 import AnalysisResultModal from '../components/chess/AnalysisResultModal';
-import { AnalysisResult, GameResult, ChessMoveResult } from '../types/chess';
+import { AnalysisResult, GameResult, ChessMoveResult, MoveEvaluation } from '../types/chess';
 import CapturedPieces from '../components/chess/CapturedPieces';
 
 // 定义路由参数类型
@@ -240,14 +240,14 @@ export default function AnalysisScreen() {
   };
   
   // 处理棋子移动
-  const handleMove = (move: { from: string; to: string; promotion?: string }) => {
+  // 在handleMove函数中添加走法评估
+  const handleMove = async (move: any) => {
     try {
-      // 执行移动
-      const result = chess.move({
-        from: move.from,
-        to: move.to,
-        promotion: move.promotion || 'q'
-      }) as ChessMoveResult;
+      // 保存当前FEN用于评估
+      const fenBeforeMove = chess.fen();
+      
+      // 执行走法
+      const result = chess.move(move) as ChessMoveResult;
       
       if (result) {
         // 更新状态
@@ -291,6 +291,17 @@ export default function AnalysisScreen() {
       console.error('走子错误:', err);
     }
   };
+  
+  // 添加状态
+  const [moveEvaluation, setMoveEvaluation] = useState<MoveEvaluation | null>(null);
+  
+  // 在渲染中传递给AnalysisResultModal
+  <AnalysisResultModal 
+    visible={showResultPanel}
+    onClose={() => setShowResultPanel(false)}
+    result={analysisResult}
+    moveEvaluation={moveEvaluation}
+  />
   
   // 撤销走法
   const undoMove = () => {
@@ -774,6 +785,7 @@ export default function AnalysisScreen() {
         visible={showResultPanel}
         onClose={() => setShowResultPanel(false)}
         result={analysisResult}
+        moveEvaluation={moveEvaluation}
       />
     </ScrollView>
   );
