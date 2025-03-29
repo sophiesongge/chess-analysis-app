@@ -296,12 +296,13 @@ export default function AnalysisScreen() {
   const [moveEvaluation, setMoveEvaluation] = useState<MoveEvaluation | null>(null);
   
   // 在渲染中传递给AnalysisResultModal
-  <AnalysisResultModal 
-    visible={showResultPanel}
-    onClose={() => setShowResultPanel(false)}
-    result={analysisResult}
-    moveEvaluation={moveEvaluation}
-  />
+  // 注意：这段代码不应该单独存在于此处，应该在return语句中
+  // <AnalysisResultModal 
+  //   visible={showResultPanel}
+  //   onClose={() => setShowResultPanel(false)}
+  //   result={analysisResult}
+  //   moveEvaluation={moveEvaluation}
+  // />
   
   // 撤销走法
   const undoMove = () => {
@@ -787,6 +788,7 @@ export default function AnalysisScreen() {
             onDepthChange={setAnalysisDepth}
             onAnalyze={analyzeCurrentPosition}
             isAnalyzing={isAnalyzing}
+            moveEvaluation={moveEvaluation} // 添加缺少的moveEvaluation属性
           />
           
           {/* 移除内联结果显示 */}
