@@ -38,12 +38,12 @@ export interface ChessMoveResult {
 }
 
 // 添加走法评估类型
+// 确保 MoveEvaluation 类型定义包含所有必要的字段
 export interface MoveEvaluation {
-  bestMove?: string;  // 最佳走法
-  scoreBefore: number;  // 走子前的评分
-  scoreAfter: number;   // 走子后的评分
-  scoreDiff: number;    // 评分差异
-  quality: string;      // 走法质量评价
-  reason: string;       // 评估原因
-  betterMove?: string;  // 更好的走法（如果有）
+  quality: string;
+  reason: string;
+  scoreBefore: number;
+  scoreAfter: number;
+  scoreDiff: number;
+  // 可能还需要添加其他字段，如 best_continuation
 }

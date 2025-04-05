@@ -59,13 +59,23 @@ const ChessBoard: React.FC = () => {
               else if (scoreDiff > -0.5) quality = 'good'; // 良好
               else quality = 'excellent'; // 优秀
               
+              // 修改：将英文质量转换为中文，并移除不存在于MoveEvaluation类型中的betterMove属性
+              let qualityText = '一般'; // 默认为一般
+              switch (quality) {
+                case 'blunder': qualityText = '差'; break;
+                case 'mistake': qualityText = '欠佳'; break;
+                case 'inaccuracy': qualityText = '一般'; break;
+                case 'neutral': qualityText = '一般'; break;
+                case 'good': qualityText = '良好'; break;
+                case 'excellent': qualityText = '优秀'; break;
+              }
+              
               const moveEval: MoveEvaluation = {
                 scoreBefore: scoreBefore,
                 scoreAfter: analysisResult.score || 0,
                 scoreDiff: scoreDiff,
-                reason: '自动评估',
-                betterMove: analysisResult.bestMoveSan,
-                quality: quality // 添加走法质量属性
+                reason: `自动评估${analysisResult.bestMoveSan ? '，最佳走法：' + analysisResult.bestMoveSan : ''}`,
+                quality: qualityText // 使用中文质量评估
               };
               setLastMoveEvaluation(moveEval);
             }

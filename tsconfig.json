@@ -16,7 +16,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "target": "esnext",
-    "lib": ["esnext"]
-  }
-  // 移除 "extends": "expo/tsconfig.base" 行
+    "lib": [
+      "esnext"
+    ]
+  },
+  "extends": "expo/tsconfig.base"
 }

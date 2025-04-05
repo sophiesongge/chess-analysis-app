@@ -24,11 +24,12 @@ export const analyzeMove = async (move: string, depth: number): Promise<MoveEval
     // 确保返回的数据包含所有必需字段
     return {
       scoreDiff: data.scoreDiff,
-      bestMove: data.bestMove,
+      // 移除 bestMove 属性，因为 MoveEvaluation 类型中没有这个属性
+      // 如果需要保留这个信息，可以将其添加到 reason 字段中
       scoreBefore: data.scoreBefore || 0,
       scoreAfter: data.scoreAfter || 0,
       quality: data.quality || '',
-      reason: data.reason || ''
+      reason: data.bestMove ? `${data.reason || ''} 最佳走法: ${data.bestMove}` : (data.reason || '')
     };
   } catch (error) {
     console.error('分析 API 调用失败:', error);

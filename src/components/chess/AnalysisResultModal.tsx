@@ -138,7 +138,8 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
                     </View>
                   )}
                   
-                  {moveEvaluation.betterMove && (
+                  {/* 移除对不存在的betterMove属性的引用，改为使用result中的bestMoveSan */}
+                  {result && result.bestMoveSan && (
                     <View style={styles.betterMoveContainer}>
                       <Text style={styles.betterMoveTitle}>更好的走法:</Text>
                       <Chip 
@@ -146,7 +147,7 @@ const AnalysisResultModal: React.FC<AnalysisResultModalProps> = ({
                         textStyle={styles.betterMoveText}
                         icon="arrow-right-bold"
                       >
-                        {moveEvaluation.betterMove}
+                        {result.bestMoveSan}
                       </Chip>
                     </View>
                   )}
