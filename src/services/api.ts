@@ -628,3 +628,35 @@ const generateMockAnalysisResult = (fen: string, depth: number): AnalysisResult 
     };
   }
 };
+
+// 添加保存棋局的接口
+export interface SaveGameData {
+  name: string;
+  fen: string;
+  whitePlayer: string;
+  blackPlayer: string;
+  date: string;
+  moveHistory: string;
+}
+
+// 保存棋局到后端
+export const saveGame = async (gameData: SaveGameData): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gameData),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('保存棋局API错误:', error);
+    throw error;
+  }
+};

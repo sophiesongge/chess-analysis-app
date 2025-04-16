@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Text, Card, Title, Portal, Dialog } from 'react-native-paper';
 import { Chess } from 'chess.js';
@@ -9,6 +9,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { getBestMove } from '../services/api';
 // 导入 GameResult 类型
 import { GameResult } from '../types/chess';
+// 导入保存棋局对话框组件
+import SaveGameDialog from '../components/SaveGameDialog';
+// 导入 AsyncStorage 用于保存计数器
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Home: undefined;
@@ -45,6 +49,26 @@ export default function HomeScreen() {
   });
   // 添加走子历史记录
   const [moveHistory, setMoveHistory] = useState<any[]>([]);
+  
+  // 添加保存棋局相关状态
+  const [saveGameDialogVisible, setSaveGameDialogVisible] = useState(false);
+  const [gameCounter, setGameCounter] = useState(1);
+  
+  // 在组件加载时获取保存的计数器值
+  useEffect(() => {
+    const loadGameCounter = async () => {
+      try {
+        const savedCounter = await AsyncStorage.getItem('gameCounter');
+        if (savedCounter !== null) {
+          setGameCounter(parseInt(savedCounter, 10));
+        }
+      } catch (error) {
+        console.error('加载游戏计数器失败:', error);
+      }
+    };
+    
+    loadGameCounter();
+  }, []);
 
   // 检查游戏结果的函数
   const checkGameResult = () => {
@@ -408,16 +432,34 @@ export default function HomeScreen() {
     Alert.alert('此功能正在开发中');
   };
 
-  // 保存棋局
+  // 保存计数器到 AsyncStorage
+  const saveGameCounter = async (counter: number) => {
+    try {
+      await AsyncStorage.setItem('gameCounter', counter.toString());
+      setGameCounter(counter);
+    } catch (error) {
+      console.error('保存游戏计数器失败:', error);
+    }
+  };
+  
+  // 显示保存棋局对话框
+  const showSaveGameDialog = () => {
+    setSaveGameDialogVisible(true);
+  };
+  
+  // 隐藏保存棋局对话框
+  const hideSaveGameDialog = () => {
+    setSaveGameDialogVisible(false);
+  };
+  
+  // 保存棋局成功后的回调
+  const handleSaveSuccess = (newCounter: number) => {
+    saveGameCounter(newCounter);
+  };
+  
+  // 修改保存棋局函数
   const savePosition = () => {
-    // 这里可以添加保存棋局的逻辑
-    // 例如将FEN字符串保存到本地存储或云端
-    const fenToSave = currentFen;
-    Alert.alert(`棋局已保存！\nFEN: ${fenToSave}`);
-    
-    // 实际应用中，你可能需要将FEN保存到AsyncStorage或后端数据库
-    // 例如：
-    // AsyncStorage.setItem('savedPosition', fenToSave);
+    showSaveGameDialog();
   };
 
   // 显示新对局弹窗
@@ -639,6 +681,16 @@ export default function HomeScreen() {
             </Dialog.Content>
           </Dialog>
         </Portal>
+        
+        {/* 保存棋局对话框 */}
+        <SaveGameDialog
+          visible={saveGameDialogVisible}
+          onDismiss={hideSaveGameDialog}
+          currentFen={currentFen}
+          moveHistory={moveHistory}
+          defaultCounter={gameCounter}
+          onSaveSuccess={handleSaveSuccess}
+        />
       </View>
     </ScrollView>
   );
@@ -758,5 +810,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#5d8a48',
     fontStyle: 'italic',
+  },
+  textInput: {
+    marginBottom: 12,
+    backgroundColor: 'white',
   },
 });
