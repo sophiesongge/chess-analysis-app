@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Text, Card, Title, Portal, Dialog } from 'react-native-paper';
 import { Chess } from 'chess.js';
 import { Chessboard } from '../components/Chessboard';
@@ -405,7 +405,7 @@ export default function HomeScreen() {
   const loadPosition = () => {
     // 这里可以添加载入棋局的逻辑
     // 例如打开一个模态框让用户输入FEN
-    alert('此功能正在开发中');
+    Alert.alert('此功能正在开发中');
   };
 
   // 保存棋局
@@ -413,7 +413,7 @@ export default function HomeScreen() {
     // 这里可以添加保存棋局的逻辑
     // 例如将FEN字符串保存到本地存储或云端
     const fenToSave = currentFen;
-    alert(`棋局已保存！\nFEN: ${fenToSave}`);
+    Alert.alert(`棋局已保存！\nFEN: ${fenToSave}`);
     
     // 实际应用中，你可能需要将FEN保存到AsyncStorage或后端数据库
     // 例如：
@@ -476,49 +476,116 @@ export default function HomeScreen() {
         <View style={styles.buttonContainer}>
           <Title style={styles.sectionTitle}>国际象棋分析工具</Title>
           
-          <Button 
-            mode="contained" 
-            style={styles.button}
-            icon="chess-knight"
-            onPress={showNewGameDialog} // 修改为显示弹窗
-            color="#5d8a48"
-            labelStyle={styles.buttonLabel}
-          >
-            开始新对局
-          </Button>
-          
-          <Button 
-            mode="outlined" 
-            style={[styles.button, styles.outlinedButton]}
-            icon="file-upload"
-            onPress={loadPosition}
-            color="#5d8a48" // 深绿色边框和文字
-            labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
-          >
-            载入棋局
-          </Button>
-          
-          <Button 
-            mode="contained" 
-            style={styles.button}
-            icon="content-save"
-            onPress={savePosition}
-            color="#5d8a48" // 深绿色按钮
-            labelStyle={styles.buttonLabel}
-          >
-            保存棋局
-          </Button>
-          
-          <Button 
-            mode="outlined" 
-            style={[styles.button, styles.outlinedButton]}
-            icon="brain"
-            onPress={goToAnalyse}
-            color="#5d8a48" // 深绿色边框和文字
-            labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
-          >
-            分析当前局面
-          </Button>
+          {/* 替换为网格布局 */}
+          <View style={styles.buttonGrid}>
+            {/* 第一行 */}
+            <View style={styles.buttonRow}>
+              <Button 
+                mode="contained" 
+                style={styles.gridButton}
+                icon="chess-knight"
+                onPress={showNewGameDialog}
+                color="#5d8a48"
+                labelStyle={styles.buttonLabel}
+              >
+                开始新对局
+              </Button>
+              
+              <Button 
+                mode="outlined" 
+                style={[styles.gridButton, styles.outlinedGridButton]}
+                icon="file-upload"
+                onPress={loadPosition}
+                color="#5d8a48"
+                labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
+              >
+                载入棋局
+              </Button>
+            </View>
+            
+            {/* 第二行 */}
+            <View style={styles.buttonRow}>
+              <Button 
+                mode="outlined" 
+                style={[styles.gridButton, styles.outlinedGridButton]}
+                icon="content-save"
+                onPress={savePosition}
+                color="#5d8a48"
+                labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
+              >
+                保存棋局
+              </Button>
+              
+              <Button 
+                mode="contained" 
+                style={styles.gridButton}
+                icon="pencil"
+                onPress={() => {
+                  Alert.alert('此功能正在开发中');
+                }}
+                color="#5d8a48"
+                labelStyle={styles.buttonLabel}
+              >
+                录入棋局
+              </Button>
+            </View>
+            
+            {/* 第三行 */}
+            <View style={styles.buttonRow}>
+              <Button 
+                mode="contained" 
+                style={styles.gridButton}
+                icon="brain"
+                onPress={goToAnalyse}
+                color="#5d8a48"
+                labelStyle={styles.buttonLabel}
+              >
+                分析棋局
+              </Button>
+              
+              <Button 
+                mode="outlined" 
+                style={[styles.gridButton, styles.outlinedGridButton]}
+                icon="account"
+                onPress={() => {
+                  Alert.alert('此功能正在开发中');
+                }}
+                color="#5d8a48"
+                labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
+              >
+                分析棋手
+              </Button>
+            </View>
+            
+            {/* 第四行 */}
+            <View style={styles.buttonRow}>
+              <Button 
+                mode="outlined" 
+                style={[styles.gridButton, styles.outlinedGridButton]}
+                icon="cog"
+                onPress={() => {
+                  Alert.alert('此功能正在开发中');
+                }}
+                color="#5d8a48"
+                labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
+              >
+                设置
+              </Button>
+              
+              <Button 
+                mode="contained" 
+                style={styles.gridButton}
+                icon="help-circle"
+                onPress={() => {
+                  Alert.alert('此功能正在开发中');
+                }}
+                color="#5d8a48"
+                labelStyle={styles.buttonLabel}
+              >
+                帮助
+              </Button>
+            </View>
+          </View>
         </View>
         
         {/* 新对局选择弹窗 */}
@@ -614,6 +681,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#555555', // 深灰色标题
   },
+  // 添加网格布局样式
+  buttonGrid: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  gridButton: {
+    flex: 1,
+    marginHorizontal: 6,
+    borderRadius: 8,
+    backgroundColor: '#5d8a48',
+  },
+  outlinedGridButton: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#5d8a48',
+  },
+  // 保留原有按钮样式用于其他地方
   button: {
     width: '85%', // 减小按钮宽度
     marginVertical: 8, // 减小按钮间距
