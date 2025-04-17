@@ -13,6 +13,7 @@ import { GameResult } from '../types/chess';
 import SaveGameDialog from '../components/SaveGameDialog';
 // 导入 AsyncStorage 用于保存计数器
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadGameDialog from '../components/LoadGameDialog';
 
 type RootStackParamList = {
   Home: undefined;
@@ -53,6 +54,9 @@ export default function HomeScreen() {
   // 添加保存棋局相关状态
   const [saveGameDialogVisible, setSaveGameDialogVisible] = useState(false);
   const [gameCounter, setGameCounter] = useState(1);
+  
+  // 添加载入棋局相关状态
+  const [loadGameDialogVisible, setLoadGameDialogVisible] = useState(false);
   
   // 在组件加载时获取保存的计数器值
   useEffect(() => {
@@ -425,11 +429,44 @@ export default function HomeScreen() {
     });
   };
 
-  // 载入棋局（这里可以添加一个模态框或者新页面来输入FEN）
+  // 载入棋局
   const loadPosition = () => {
-    // 这里可以添加载入棋局的逻辑
-    // 例如打开一个模态框让用户输入FEN
-    Alert.alert('此功能正在开发中');
+    // 打开载入棋局对话框
+    setLoadGameDialogVisible(true);
+  };
+
+  // 处理载入棋局
+  const handleLoadGame = (gameData: any) => {
+    try {
+      // 重置当前棋盘
+      chessRef.current = new Chess();
+      
+      // 设置FEN
+      if (gameData.fen) {
+        chessRef.current.load(gameData.fen);
+        setCurrentFen(gameData.fen);
+      }
+      
+      // 解析并设置移动历史
+      let parsedMoveHistory = [];
+      if (gameData.moveHistory) {
+        try {
+          parsedMoveHistory = JSON.parse(gameData.moveHistory);
+          setMoveHistory(parsedMoveHistory);
+        } catch (error) {
+          console.error('解析移动历史失败:', error);
+        }
+      }
+      
+      // 检查游戏结果
+      checkGameResult();
+      
+      // 显示成功消息
+      Alert.alert('载入成功', `棋局 "${gameData.name}" 已成功载入！`);
+    } catch (error) {
+      console.error('载入棋局失败:', error);
+      Alert.alert('载入失败', '无法载入棋局，请稍后再试。');
+    }
   };
 
   // 保存计数器到 AsyncStorage
@@ -690,6 +727,13 @@ export default function HomeScreen() {
           moveHistory={moveHistory}
           defaultCounter={gameCounter}
           onSaveSuccess={handleSaveSuccess}
+        />
+        
+        {/* 添加载入棋局对话框 */}
+        <LoadGameDialog
+          visible={loadGameDialogVisible}
+          onDismiss={() => setLoadGameDialogVisible(false)}
+          onGameLoad={handleLoadGame}
         />
       </View>
     </ScrollView>

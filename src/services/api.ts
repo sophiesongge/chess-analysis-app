@@ -2,8 +2,10 @@ import axios from 'axios';
 import { Chess } from 'chess.js'; 
 import { AnalysisResult, MoveEvaluation } from '../types/chess';
 
-// API基础URL
+// API基础URL - 确保这个地址正确
 const API_BASE_URL = 'http://localhost:8000';
+// 如果您的后端运行在不同的端口或地址，请相应更新
+// 例如：const API_BASE_URL = 'http://localhost:3000';
 
 /**
  * 分析棋盘位置
@@ -683,5 +685,70 @@ export const getPlayerSuggestions = async (prefix: string): Promise<string[]> =>
     console.error('获取棋手建议API错误:', error);
     // 出错时返回空数组，不影响用户体验
     return [];
+  }
+};
+
+// 获取保存的棋局列表，支持分页
+export const getSavedGames = async (page = 1, pageSize = 10): Promise<any[]> => {
+  try {
+    console.log(`正在请求保存的棋局列表，页码: ${page}, 每页数量: ${pageSize}...`);
+    const response = await fetch(`${API_BASE_URL}/api/games?page=${page}&pageSize=${pageSize}`);
+    
+    console.log('棋局列表API响应状态:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('获取到的棋局数据:', data);
+    
+    // 检查数据结构，提取games数组
+    let games = [];
+    if (data && data.games && Array.isArray(data.games)) {
+      games = data.games;
+    } else if (Array.isArray(data)) {
+      games = data;
+    }
+    
+    console.log('处理后的棋局数组:', games);
+    return games;
+  } catch (error) {
+    console.error('获取保存棋局列表API错误:', error);
+    return [];
+  }
+};
+
+// 获取特定棋局的详细信息
+export const getGameDetails = async (gameId: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/games/${gameId}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('获取到的棋局详情:', data);
+    
+    // 检查数据结构，提取game对象
+    let gameData = data;
+    if (data && data.game) {
+      gameData = data.game;
+    }
+    
+    // 适配字段名称
+    return {
+      id: gameData.id || gameData._id,
+      name: gameData.name,
+      fen: gameData.fen || gameData.position,
+      moveHistory: gameData.moveHistory || gameData.move_history || '[]',
+      whitePlayer: gameData.whitePlayer || gameData.white_player,
+      blackPlayer: gameData.blackPlayer || gameData.black_player,
+      date: gameData.date || gameData.created_at
+    };
+  } catch (error) {
+    console.error('获取棋局详情API错误:', error);
+    throw error;
   }
 };
