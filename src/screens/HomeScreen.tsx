@@ -641,27 +641,27 @@ export default function HomeScreen() {
               <Button 
                 mode="outlined" 
                 style={[styles.gridButton, styles.outlinedGridButton]}
-                icon="cog"
+                icon="database"
                 onPress={() => {
                   Alert.alert('此功能正在开发中');
                 }}
                 color="#5d8a48"
                 labelStyle={[styles.buttonLabel, {color: '#5d8a48'}]}
               >
-                设置
+                数据库
               </Button>
               
               <Button 
                 mode="contained" 
                 style={styles.gridButton}
-                icon="help-circle"
+                icon="cog"
                 onPress={() => {
                   Alert.alert('此功能正在开发中');
                 }}
                 color="#5d8a48"
                 labelStyle={styles.buttonLabel}
               >
-                帮助
+                设置
               </Button>
             </View>
           </View>
