@@ -660,3 +660,28 @@ export const saveGame = async (gameData: SaveGameData): Promise<any> => {
     throw error;
   }
 };
+
+// 获取历史棋手名字列表
+// 修改获取棋手名字的函数，使用正确的API路径
+export const getPlayerSuggestions = async (prefix: string): Promise<string[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/player-suggestions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prefix }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.suggestions || [];
+  } catch (error) {
+    console.error('获取棋手建议API错误:', error);
+    // 出错时返回空数组，不影响用户体验
+    return [];
+  }
+};
